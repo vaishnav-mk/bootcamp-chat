@@ -3,6 +3,6 @@
 import { useLowercase } from "@/hooks/useLowercase";
 
 export function LowercaseProvider({ children }: { children: React.ReactNode }) {
-  useLowercase();
+  // useLowercase();
   return <>{children}</>;
 }

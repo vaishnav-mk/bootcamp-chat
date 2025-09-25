@@ -3,19 +3,7 @@ import { cn } from "@/lib/utils";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {}
 
-export function Input({ className, onChange, ...props }: InputProps) {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.toLowerCase();
-    const newEvent = {
-      ...e,
-      target: {
-        ...e.target,
-        value: value,
-      },
-    } as React.ChangeEvent<HTMLInputElement>;
-    onChange?.(newEvent);
-  };
-
+export function Input({ className, ...props }: InputProps) {
   return (
     <input
       className={cn(
@@ -24,7 +12,6 @@ export function Input({ className, onChange, ...props }: InputProps) {
         "disabled:opacity-50 disabled:cursor-not-allowed rounded",
         className,
       )}
-      onChange={handleChange}
       {...props}
     />
   );

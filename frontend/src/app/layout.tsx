@@ -30,10 +30,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-900 text-white h-screen`}
       >
-        <LowercaseProvider>
+        {/* <LowercaseProvider> */}
           <AuthProvider>{children}</AuthProvider>
           <ToastProvider />
-        </LowercaseProvider>
+        {/* </LowercaseProvider> */}
       </body>
     </html>
   );

@@ -48,12 +48,11 @@ body,
   height: 100%;
 }
 
-/* Force all text to be lowercase */
-* {
+*:not(input):not(textarea) {
   text-transform: lowercase !important;
 }
 
-/* Override for input elements to show lowercase placeholder but still allow normal input */
-input::placeholder {
+input::placeholder,
+textarea::placeholder {
   text-transform: lowercase !important;
 }

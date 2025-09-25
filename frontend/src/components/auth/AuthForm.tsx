@@ -30,7 +30,7 @@ export default function AuthForm() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value.toLowerCase(),
+      [e.target.name]: e.target.value,
     }));
   };
 
