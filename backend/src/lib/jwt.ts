@@ -1,4 +1,4 @@
-import { ErrorMessage } from '@/constants/errors';
+import { ErrorMessage } from '../constants/errors.js';
 import jwt from 'jsonwebtoken';
 import dotenv from "dotenv";
 

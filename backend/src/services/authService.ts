@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import * as userService from './userService.js';
-import { generateToken } from '../config/jwt.js';
+import { generateToken } from '../lib/jwt.js';
 
 export interface AuthResult {
   user: {

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import * as authService from "../services/authService.js";
 import * as userService from "../services/userService.js";
-import { RegisterData, LoginData } from "../models/userSchemas.js";
+import { RegisterData, LoginData } from "../validations/userSchemas.js";
 import { ErrorMessage } from "../constants/errors.js";
 import { SuccessMessage } from "../constants/messages.js";
 

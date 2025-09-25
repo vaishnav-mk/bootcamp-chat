@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import * as userService from "@/services/userService";
-import { UserParamsData, UpdateProfileData, UsernameParamsData } from "../models/userSchemas.js";
+import { UserParamsData, UpdateProfileData, UsernameParamsData } from "../validations/userSchemas.js";
 import { ErrorMessage } from "../constants/errors.js";
 import { SuccessMessage } from "../constants/messages.js";
 

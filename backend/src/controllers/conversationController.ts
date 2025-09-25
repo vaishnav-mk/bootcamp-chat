@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import * as conversationService from "@/services/conversationService";
-import { CreateConversationData } from "../models/conversationSchemas";
+import { CreateConversationData } from "../validations/conversationSchemas";
 import { ErrorMessage } from "../constants/errors";
 import { SuccessMessage } from "../constants/messages";
 
