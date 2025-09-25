@@ -1,0 +1,6 @@
+export const CACHE_CONFIG = {
+  DEFAULT_TTL_MS: 1000 * 60 * 5,
+  USER_TTL_MS: 1000 * 60 * 10,
+  CONVERSATION_TTL_MS: 1000 * 60 * 15,
+  MESSAGE_TTL_MS: 1000 * 60 * 2,
+};
