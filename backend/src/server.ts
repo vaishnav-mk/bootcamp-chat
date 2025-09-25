@@ -12,8 +12,7 @@ dotenv.config();
 
 const app = express();
 
-// Middleware
-const allowedOrigins = [
+const allowedOrigins = [ // im leaving this here for now for mutlipel ports
   'http://localhost:3000',
   'http://localhost:3001', 
   'http://localhost:3002',
