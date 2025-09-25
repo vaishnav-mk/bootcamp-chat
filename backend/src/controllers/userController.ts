@@ -3,8 +3,9 @@ import * as userService from "@/services/userService";
 import { UserParamsData, UpdateProfileData, UsernameParamsData } from "../validations/userSchemas.js";
 import { ErrorMessage } from "../constants/errors.js";
 import { SuccessMessage } from "../constants/messages.js";
+import { asyncWrap } from "../middleware/asyncWrap.js";
 
-export const getCurrentUser = async (req: Request, res: Response) => {
+const getCurrentUserHandler = async (req: Request, res: Response) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: ErrorMessage.UNAUTHORIZED });
   
@@ -30,7 +31,7 @@ export const getCurrentUser = async (req: Request, res: Response) => {
   }
 };
 
-export const getUserById = async (req: Request, res: Response) => {
+const getUserByIdHandler = async (req: Request, res: Response) => {
   const params = req.validatedParams as UserParamsData;
   
   try {
@@ -55,7 +56,7 @@ export const getUserById = async (req: Request, res: Response) => {
   }
 };
 
-export const getUserByUsername = async (req: Request, res: Response) => {
+const getUserByUsernameHandler = async (req: Request, res: Response) => {
   const params = req.validatedParams as UsernameParamsData;
   
   try {
@@ -78,7 +79,7 @@ export const getUserByUsername = async (req: Request, res: Response) => {
   }
 };
 
-export const updateProfile = async (req: Request, res: Response) => {
+const updateProfileHandler = async (req: Request, res: Response) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: ErrorMessage.UNAUTHORIZED });
 
@@ -113,3 +114,8 @@ export const updateProfile = async (req: Request, res: Response) => {
     res.status(500).json({ error: ErrorMessage.FAILED_TO_UPDATE_PROFILE });
   }
 };
+
+export const getCurrentUser = asyncWrap(getCurrentUserHandler);
+export const getUserById = asyncWrap(getUserByIdHandler);
+export const getUserByUsername = asyncWrap(getUserByUsernameHandler);
+export const updateProfile = asyncWrap(updateProfileHandler);

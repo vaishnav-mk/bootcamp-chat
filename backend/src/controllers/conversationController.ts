@@ -3,8 +3,9 @@ import * as conversationService from "@/services/conversationService";
 import { CreateConversationData } from "../validations/conversationSchemas";
 import { ErrorMessage } from "../constants/errors";
 import { SuccessMessage } from "../constants/messages";
+import { asyncWrap } from "../middleware/asyncWrap.js";
 
-export const createConversation = async (req: Request, res: Response) => {
+const createConversationHandler = async (req: Request, res: Response) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: ErrorMessage.UNAUTHORIZED });
 
@@ -89,7 +90,7 @@ export const createConversation = async (req: Request, res: Response) => {
   }
 };
 
-export const getUserConversations = async (req: Request, res: Response) => {
+const getUserConversationsHandler = async (req: Request, res: Response) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: ErrorMessage.UNAUTHORIZED });
 
@@ -126,3 +127,6 @@ export const getUserConversations = async (req: Request, res: Response) => {
     res.status(500).json({ error: ErrorMessage.FAILED_TO_FETCH_CONVERSATIONS });
   }
 };
+
+export const createConversation = asyncWrap(createConversationHandler);
+export const getUserConversations = asyncWrap(getUserConversationsHandler);

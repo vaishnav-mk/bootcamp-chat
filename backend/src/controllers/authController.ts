@@ -4,8 +4,9 @@ import * as userService from "../services/userService.js";
 import { RegisterData, LoginData } from "../validations/userSchemas.js";
 import { ErrorMessage } from "../constants/errors.js";
 import { SuccessMessage } from "../constants/messages.js";
+import { asyncWrap } from "../middleware/asyncWrap.js";
 
-export const register = async (req: Request, res: Response) => {
+const registerHandler = async (req: Request, res: Response) => {
   const data = req.validatedData as RegisterData;
   
   const existingUser = await userService.fetchUserByEmail(data.email);
@@ -36,7 +37,7 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
-export const login = async (req: Request, res: Response) => {
+const loginHandler = async (req: Request, res: Response) => {
   const data = req.validatedData as LoginData;
 
   try {
@@ -56,7 +57,7 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
-export const logout = async (req: Request, res: Response) => {
+const logoutHandler = async (req: Request, res: Response) => {
   const userId = req.user?.id;
   
   res.json({ 
@@ -64,3 +65,7 @@ export const logout = async (req: Request, res: Response) => {
     userId: userId?.toString() 
   });
 };
+
+export const register = asyncWrap(registerHandler);
+export const login = asyncWrap(loginHandler);
+export const logout = asyncWrap(logoutHandler);
