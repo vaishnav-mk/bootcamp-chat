@@ -15,6 +15,7 @@ export function LoadingSpinner({
 
   return (
     <div
+      data-testid="loading-spinner"
       className={`animate-spin rounded-full border-2 border-zinc-700 border-t-blue-500 ${sizeClasses[size]} ${className}`}
     />
   );

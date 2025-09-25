@@ -4,3 +4,5 @@ drizzle/
 *.env
 cop
 coverage/
+frontend/test-results
+frontend/playwright-report

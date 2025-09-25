@@ -124,7 +124,7 @@ export default function ChatApp() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div data-testid="chat-app" className="flex h-screen bg-background">
       <Sidebar
         conversations={conversations}
         activeConversationId={activeConversationId}
