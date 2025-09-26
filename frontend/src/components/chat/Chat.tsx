@@ -6,7 +6,6 @@ interface Message {
   conversationId: string;
   senderId: string;
   content: string;
-  messageType: string;
   createdAt: string;
   sender: {
     id: string;
@@ -15,13 +14,8 @@ interface Message {
   };
 }
 
-interface ChatProps {
-  conversationId: string;
-  currentUserId: string;
-}
-
-export const Chat: React.FC<ChatProps> = ({ conversationId, currentUserId }) => {
-  const { sendMessage, isConnected, joinConversations } = useWebSocket();
+export const Chat: React.FC<{ conversationId: string; currentUserId: string }> = ({ conversationId, currentUserId }) => {
+  const { sendMessage, isConnected, joinConversations, onMessageCreated } = useWebSocket();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,18 +29,23 @@ export const Chat: React.FC<ChatProps> = ({ conversationId, currentUserId }) => 
   }, [conversationId]);
 
   useEffect(() => {
-    scrollToBottom();
+    onMessageCreated((message) => {
+      if (message.conversationId === conversationId) {
+        setMessages(prev => prev.find(m => m.id === message.id) ? prev : [...prev, message]);
+      }
+    });
+  }, [conversationId, onMessageCreated]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const loadMessages = async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:3001/api/messages/conversations/${conversationId}/messages`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      
       if (response.ok) {
         const data = await response.json();
         setMessages(data.messages);
@@ -58,7 +57,6 @@ export const Chat: React.FC<ChatProps> = ({ conversationId, currentUserId }) => 
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!newMessage.trim() || !isConnected) return;
 
     setLoading(true);
@@ -76,54 +74,27 @@ export const Chat: React.FC<ChatProps> = ({ conversationId, currentUserId }) => 
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  };
-
   return (
     <div className="flex flex-col h-full">
-      {/* Connection Status */}
       <div className="p-3 border-b bg-gray-50">
         <div className="flex items-center gap-2">
           <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-          <span className="text-sm text-gray-600">
-            {isConnected ? 'Connected' : 'Disconnected'}
-          </span>
+          <span className="text-sm text-gray-600">{isConnected ? 'Connected' : 'Disconnected'}</span>
         </div>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => {
           const isOwn = message.senderId === currentUserId;
-          
           return (
-            <div
-              key={message.id}
-              className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-            >
+            <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                isOwn 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-200 text-gray-900'
+                isOwn ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-900'
               }`}>
-                {!isOwn && (
-                  <div className="text-xs font-semibold mb-1">
-                    {message.sender.name || message.sender.username}
-                  </div>
-                )}
+                {!isOwn && <div className="text-xs font-semibold mb-1">{message.sender.name || message.sender.username}</div>}
                 <div className="break-words">{message.content}</div>
-                <div className={`text-xs mt-1 ${
-                  isOwn ? 'text-blue-100' : 'text-gray-500'
-                }`}>
-                  {formatTime(message.createdAt)}
+                <div className={`text-xs mt-1 ${isOwn ? 'text-blue-100' : 'text-gray-500'}`}>
+                  {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
             </div>
@@ -132,7 +103,6 @@ export const Chat: React.FC<ChatProps> = ({ conversationId, currentUserId }) => 
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
       <form onSubmit={handleSendMessage} className="p-4 border-t bg-white">
         <div className="flex gap-2">
           <input
@@ -146,7 +116,7 @@ export const Chat: React.FC<ChatProps> = ({ conversationId, currentUserId }) => 
           <button
             type="submit"
             disabled={!newMessage.trim() || !isConnected || loading}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
           >
             {loading ? 'Sending...' : 'Send'}
           </button>

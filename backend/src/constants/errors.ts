@@ -16,4 +16,7 @@ export enum ErrorMessage {
   FAILED_TO_CREATE_CONVERSATION = "Failed to create conversation",
   FAILED_TO_FETCH_CONVERSATIONS = "Failed to fetch conversations",
   DIRECT_CONVERSATION_EXISTS = "Direct conversation between these users already exists",
+  MESSAGE_NOT_FOUND = "Message not found or unauthorized",
+  NOT_IN_CONVERSATION = "User not in conversation",
+  SOCKET_NOT_CONNECTED = "Socket not connected",
 }

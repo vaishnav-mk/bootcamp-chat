@@ -3,6 +3,7 @@ import { asyncWrap } from "@/middleware/asyncWrap";
 import { authenticateToken } from "@/middleware/auth";
 import { getConversationMessages } from "@/services/messageService";
 import { verifyUserInConversation } from "@/services/messageService";
+import { ErrorMessage } from "@/constants/errors";
 
 const router = Router();
 
@@ -18,7 +19,7 @@ router.get(
     // Verify user is a member of this conversation
     const isMember = await verifyUserInConversation(userId, conversationId);
     if (!isMember) {
-      return res.status(403).json({ error: "Access denied to this conversation" });
+      return res.status(403).json({ error: ErrorMessage.NOT_IN_CONVERSATION });
     }
 
     const messages = await getConversationMessages(

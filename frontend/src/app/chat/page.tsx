@@ -18,11 +18,9 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get token from localStorage
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
       setToken(storedToken);
-      // Decode token to get user info (simplified)
       try {
         const payload = JSON.parse(atob(storedToken.split('.')[1]));
         setCurrentUserId(payload.userId);
@@ -34,25 +32,18 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    if (token) {
-      loadConversations();
-    }
+    if (token) loadConversations();
   }, [token]);
 
   const loadConversations = async () => {
     try {
       const response = await fetch('http://localhost:3001/api/conversations', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      
       if (response.ok) {
         const data = await response.json();
         setConversations(data.conversations || []);
-        if (data.conversations && data.conversations.length > 0) {
-          setSelectedConversationId(data.conversations[0].id);
-        }
+        if (data.conversations?.[0]) setSelectedConversationId(data.conversations[0].id);
       }
     } catch (error) {
       console.error('Failed to load conversations:', error);
@@ -62,10 +53,7 @@ export default function ChatPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
@@ -85,16 +73,13 @@ export default function ChatPage() {
     <WebSocketProvider token={token}>
       <div className="min-h-screen bg-gray-100">
         <div className="container mx-auto h-screen flex">
-          {/* Sidebar */}
           <div className="w-1/3 bg-white border-r border-gray-200">
             <div className="p-4 border-b border-gray-200">
               <h1 className="text-xl font-semibold text-gray-900">Conversations</h1>
             </div>
             <div className="overflow-y-auto">
               {conversations.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
-                  No conversations found
-                </div>
+                <div className="p-4 text-center text-gray-500">No conversations found</div>
               ) : (
                 conversations.map((conversation) => (
                   <div
@@ -114,13 +99,9 @@ export default function ChatPage() {
             </div>
           </div>
 
-          {/* Chat Area */}
           <div className="flex-1 bg-white">
             {selectedConversationId ? (
-              <Chat 
-                conversationId={selectedConversationId} 
-                currentUserId={currentUserId}
-              />
+              <Chat conversationId={selectedConversationId} currentUserId={currentUserId} />
             ) : (
               <div className="h-full flex items-center justify-center text-gray-500">
                 Select a conversation to start chatting

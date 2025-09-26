@@ -7,6 +7,7 @@ import { dbRequest } from "@/services/db/dbRequest";
 import { CACHE_CONFIG } from "@/config/cache";
 import { eq, and, desc, or, sql } from "drizzle-orm";
 import { generateSnowflake } from "@/utils/snowflake";
+import { ErrorMessage } from "@/constants/errors";
 
 export interface CreateMessageData {
   conversation_id: string;
@@ -56,7 +57,7 @@ export const editMessage = async (senderId: string, messageData: EditMessageData
     ));
 
   if (existingMessage.length === 0) {
-    throw new Error("Message not found or unauthorized");
+    throw new Error(ErrorMessage.MESSAGE_NOT_FOUND);
   }
 
   // Update the message
@@ -87,7 +88,7 @@ export const deleteMessage = async (senderId: string, messageId: string) => {
     ));
 
   if (existingMessage.length === 0) {
-    throw new Error("Message not found or unauthorized");
+    throw new Error(ErrorMessage.MESSAGE_NOT_FOUND);
   }
 
   // Soft delete - mark as deleted in metadata
