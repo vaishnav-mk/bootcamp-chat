@@ -13,8 +13,8 @@ import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import type { Conversation } from "@/types";
-import ConversationSection from "./ConversationSection";
-import CreateConversationModal from "./CreateConversationModal";
+import ConversationSection from "../conversation/ConversationSection";
+import CreateConversationModal from "../modals/CreateConversationModal";
 import SidebarHeader from "./SidebarHeader";
 
 interface SidebarProps {

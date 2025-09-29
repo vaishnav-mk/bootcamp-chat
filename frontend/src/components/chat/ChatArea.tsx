@@ -10,12 +10,14 @@ interface ChatAreaProps {
   conversation?: Conversation;
   messages: Message[];
   onSendMessage: (content: string) => void;
+  isConnected?: boolean;
 }
 
 export default function ChatArea({
   conversation,
   messages,
   onSendMessage,
+  isConnected = true,
 }: ChatAreaProps) {
   const { user } = useAuth();
   const [messageInput, setMessageInput] = useState("");
@@ -23,7 +25,7 @@ export default function ChatArea({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
+  }, [messages]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,17 +78,21 @@ export default function ChatArea({
       <div className="p-4 border-b border-zinc-700 bg-zinc-800">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
-            {conversation.name
-              ? conversation.name.charAt(0).toUpperCase()
-              : "#"}
+            {conversation.name ? conversation.name.charAt(0).toUpperCase() : "#"}
           </div>
           <div className="flex-1">
-            <h2 className="font-medium text-white">
-              {conversation.name || "chat"}
-            </h2>
-            <p className="text-sm text-zinc-400">
-              {conversation.type === "group" ? "group chat" : "direct message"}
-            </p>
+            <h2 className="font-medium text-white">{conversation.name || "chat"}</h2>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-zinc-400">
+                {conversation.type === "group" ? "group chat" : "direct message"}
+              </p>
+              <div className="flex items-center gap-1">
+                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                <span className="text-xs text-zinc-400">
+                  {isConnected ? 'connected' : 'disconnected'}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -140,11 +146,12 @@ export default function ChatArea({
         <form onSubmit={handleSendMessage} className="flex space-x-2">
           <Input
             value={messageInput}
-            onChange={(e) => setMessageInput(e.target.value.toLowerCase())}
-            placeholder="type a message..."
+            onChange={(e) => setMessageInput(e.target.value)}
+            placeholder={isConnected ? "type a message..." : "connecting..."}
             className="flex-1"
+            disabled={!isConnected}
           />
-          <Button type="submit" disabled={!messageInput.trim()}>
+          <Button type="submit" disabled={!messageInput.trim() || !isConnected}>
             send
           </Button>
         </form>

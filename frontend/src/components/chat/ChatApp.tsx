@@ -1,17 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import toast from "react-hot-toast";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/context/AuthContext";
-import { conversationApi, userApi } from "@/lib/api";
+import { WebSocketProvider, useWebSocket } from "@/context/WebSocketContext";
+import { userApi, conversationApi, messageApi } from "@/lib/api";
+import toast from "react-hot-toast";
+import { loadConversationsUtil, createConversationUtil, sendMessageUtil } from "@/utils/conversationUtils";
+import { mergeWebSocketMessages } from "@/utils/messageUtils";
 import type { Conversation, Message } from "@/types";
 import ChatArea from "./ChatArea";
-import MembersSidebar from "./MembersSidebar";
-import Sidebar from "./Sidebar";
+import Sidebar from "./sidebar/Sidebar";
+import MembersSidebar from "./sidebar/MembersSidebar";
 
-export default function ChatApp() {
+function ChatAppContent() {
   const { user } = useAuth();
+  const { sendMessage, isConnected, messages: wsMessages, joinConversations, clearMessages } = useWebSocket();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<
     string | null
@@ -20,22 +24,36 @@ export default function ChatApp() {
   const [isLoading, setIsLoading] = useState(true);
 
   const loadConversations = useCallback(async () => {
-    try {
-      const { conversations } = await conversationApi.getConversations();
-      setConversations(conversations);
-      if (conversations.length > 0 && !activeConversationId) {
-        setActiveConversationId(conversations[0].id);
-      }
-    } catch (_error) {
-      toast.error("Failed to load conversations");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [activeConversationId]);
+    await loadConversationsUtil(setConversations, setActiveConversationId, joinConversations, activeConversationId);
+    setIsLoading(false);
+  }, [activeConversationId, joinConversations]);
 
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
+
+  useEffect(() => {
+    setMessages(prev => mergeWebSocketMessages(prev, wsMessages, activeConversationId));
+  }, [wsMessages, activeConversationId]);
+
+  useEffect(() => {
+    const loadMessages = async () => {
+      if (!activeConversationId) {
+        setMessages([]);
+        return;
+      }
+
+      try {
+        const data = await messageApi.getConversationMessages(activeConversationId);
+        setMessages(data.messages || []);
+      } catch {
+        toast.error('Failed to load messages');
+        setMessages([]);
+      }
+    };
+
+    loadMessages();
+  }, [activeConversationId]);
 
   const activeConversation = conversations.find(
     (c) => c.id === activeConversationId,
@@ -44,24 +62,8 @@ export default function ChatApp() {
     (m) => m.conversationId === activeConversationId,
   );
 
-  const handleSendMessage = (content: string) => {
-    if (!activeConversationId || !content.trim() || !user) {
-      toast.error("Cannot send empty message");
-      return;
-    }
-
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      conversationId: activeConversationId,
-      senderId: user.id,
-      content: content.trim(),
-      messageType: "text",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      sender: user,
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
+  const handleSendMessage = async (content: string) => {
+    await sendMessageUtil(content, activeConversationId, user, isConnected, sendMessage);
   };
 
   const handleCreateConversation = async (data: {
@@ -110,7 +112,7 @@ export default function ChatApp() {
       
       setConversations((prev) => [conversation, ...prev]);
       setActiveConversationId(conversation.id);
-    } catch (_error) {
+    } catch {
       toast.error("failed to start direct message");
     }
   };
@@ -146,4 +148,12 @@ export default function ChatApp() {
       )}
     </div>
   );
+}
+
+export default function ChatApp() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [token, setToken] = useState<string | null>(null);
+  useEffect(() => { if (!isLoading) setToken(localStorage.getItem('auth_token')); }, [isLoading]);
+  if (isLoading || !token) return <div className="h-screen bg-background flex items-center justify-center"><LoadingSpinner size="lg" /></div>;
+  return !isAuthenticated ? <ChatAppContent /> : <WebSocketProvider token={token}><ChatAppContent /></WebSocketProvider>;
 }
