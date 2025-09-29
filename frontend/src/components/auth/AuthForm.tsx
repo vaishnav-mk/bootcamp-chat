@@ -18,13 +18,11 @@ export default function AuthForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      if (isLogin) {
-        await login(formData.email, formData.password);
-      } else {
-        await register(formData);
-      }
-    } catch (_error) {}
+    if (isLogin) {
+      await login(formData.email, formData.password);
+    } else {
+      await register(formData);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
