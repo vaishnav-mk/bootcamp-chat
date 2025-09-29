@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
 import { Server as HTTPServer } from "http";
+import { config } from "@/config/env";
 import { verifyToken } from "@/lib/jwt";
 import { ErrorMessage } from "@/constants/errors";
 import { AuthenticatedSocket } from "./websocket/types";
@@ -12,7 +13,7 @@ export class WebSocketService {
   constructor(httpServer: HTTPServer) {
     this.io = new Server(httpServer, {
       cors: {
-        origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
+        origin: config.websocketOrigins,
         credentials: true
       }
     });

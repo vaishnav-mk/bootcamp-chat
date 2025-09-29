@@ -9,15 +9,19 @@ export const createMessageSchema = z.object({
 });
 
 export const editMessageSchema = z.object({
-  message_id: z.string().min(1),
   content: z.string().min(1).max(2000),
   metadata: z.any().optional(),
 });
 
-export const deleteMessageSchema = z.object({
-  message_id: z.string().min(1),
+export const messageParamsSchema = z.object({
+  messageId: z.string().min(1),
+});
+
+export const conversationParamsSchema = z.object({
+  conversationId: z.string().min(1),
 });
 
 export type CreateMessageInput = z.infer<typeof createMessageSchema>;
 export type EditMessageInput = z.infer<typeof editMessageSchema>;
-export type DeleteMessageInput = z.infer<typeof deleteMessageSchema>;
+export type MessageParamsInput = z.infer<typeof messageParamsSchema>;
+export type ConversationParamsInput = z.infer<typeof conversationParamsSchema>;

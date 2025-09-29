@@ -1,6 +1,6 @@
 import type { Conversation, User } from "@/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 class ApiError extends Error {
   constructor(
@@ -109,6 +109,36 @@ export const conversationApi = {
     apiRequest<{ conversation: Conversation }>("/api/conversations", {
       method: "POST",
       body: JSON.stringify(data),
+    }),
+};
+
+export const messageApi = {
+  getConversationMessages: (conversationId: string, limit = 50, offset = 0) =>
+    apiRequest<{ messages: any[] }>(
+      `/api/messages/conversations/${conversationId}?limit=${limit}&offset=${offset}`
+    ),
+  createMessage: (data: {
+    conversation_id: string;
+    content: string;
+    message_type?: string;
+    metadata?: any;
+    parent_id?: string;
+  }) =>
+    apiRequest<{ message: any }>("/api/messages", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  editMessage: (messageId: string, data: {
+    content: string;
+    metadata?: any;
+  }) =>
+    apiRequest<{ message: any }>(`/api/messages/${messageId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deleteMessage: (messageId: string) =>
+    apiRequest<{ message_id: string; deleted: boolean }>(`/api/messages/${messageId}`, {
+      method: "DELETE",
     }),
 };
 

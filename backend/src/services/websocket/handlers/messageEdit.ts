@@ -3,6 +3,7 @@ import {
   editMessage,
   EditMessageData 
 } from "@/services/messageService";
+import { serializeMessage } from "@/utils/serialization";
 import { AuthenticatedSocket, WebSocketHandler } from "../types";
 
 const messageEditHandler: WebSocketHandler = {
@@ -19,10 +20,11 @@ const messageEditHandler: WebSocketHandler = {
       }
 
       const message = await editMessage(socket.userId, data);
-      io.to(`conversation:${message.conversationId}`).emit('message_edited', message);
+      const serializedMessage = serializeMessage(message);
+      io.to(`conversation:${serializedMessage.conversationId}`).emit('message_edited', serializedMessage);
       
       if (callback) {
-        callback({ success: true, message });
+        callback({ success: true, message: serializedMessage });
       }
     } catch (error: any) {
       if (callback) {

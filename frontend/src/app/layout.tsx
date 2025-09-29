@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { LowercaseProvider } from "@/components/providers/LowercaseProvider";
 import { ToastProvider } from "@/components/providers/ToastProvider";
 import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
@@ -30,10 +29,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-900 text-white h-screen`}
       >
-        {/* <LowercaseProvider> */}
-          <AuthProvider>{children}</AuthProvider>
-          <ToastProvider />
-        {/* </LowercaseProvider> */}
+        <AuthProvider>{children}</AuthProvider>
+        <ToastProvider />
       </body>
     </html>
   );
