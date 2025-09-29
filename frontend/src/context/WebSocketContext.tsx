@@ -98,7 +98,6 @@ export const WebSocketProvider: React.FC<{ children: ReactNode; token: string | 
       } else {
         console.log("No callback registered for conversation_created");
       }
-      // Auto-join the new conversation
       if (data.conversation?.id) {
         newSocket.emit('join_conversations', [data.conversation.id]);
       }
