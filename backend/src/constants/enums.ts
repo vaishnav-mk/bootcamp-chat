@@ -33,4 +33,5 @@ export enum WebSocketEvent {
   MESSAGE_CREATED = 'message_created',
   MESSAGE_EDITED = 'message_edited',
   MESSAGE_DELETED = 'message_deleted',
+  CONVERSATION_CREATED = 'conversation_created',
 }

@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { useNotifications } from './NotificationContext';
 
 interface Message {
   id: string;
@@ -7,7 +8,7 @@ interface Message {
   senderId: string;
   content: string;
   messageType: string;
-  createdAt: string;
+
   updatedAt?: string;
   sender: {
     id: string;
@@ -33,8 +34,10 @@ interface WebSocketContextType {
   onMessageCreated: (callback: (message: Message) => void) => void;
   onMessageEdited: (callback: (message: Message) => void) => void;
   onMessageDeleted: (callback: (data: { message_id: string; deleted: boolean }) => void) => void;
+  onConversationCreated: (callback: (conversation: any) => void) => void;
   messages: Message[];
   clearMessages: () => void;
+  setActiveConversationId: (id: string | null) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | null>(null);
@@ -43,6 +46,9 @@ export const WebSocketProvider: React.FC<{ children: ReactNode; token: string | 
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const conversationCreatedCallbackRef = useRef<((conversation: any) => void) | null>(null);
+  const { incrementUnread } = useNotifications();
 
   useEffect(() => {
     if (!token) return;
@@ -69,6 +75,10 @@ export const WebSocketProvider: React.FC<{ children: ReactNode; token: string | 
         if (prev.find(m => m.id === message.id)) return prev;
         return [...prev, message];
       });
+
+      if (message.conversationId !== activeConversationId) {
+        incrementUnread(message.conversationId, message.senderId);
+      }
     });
 
     newSocket.on('message_edited', (message: Message) => {
@@ -77,6 +87,21 @@ export const WebSocketProvider: React.FC<{ children: ReactNode; token: string | 
 
     newSocket.on('message_deleted', (data: { message_id: string; deleted: boolean }) => {
       setMessages(prev => prev.filter(m => m.id !== data.message_id));
+    });
+
+    newSocket.on('conversation_created', (data: { conversation: any }) => {
+      console.log("Received conversation_created event:", data);
+      console.log("Callback available:", !!conversationCreatedCallbackRef.current);
+      if (conversationCreatedCallbackRef.current) {
+        console.log("Calling conversation created callback");
+        conversationCreatedCallbackRef.current(data.conversation);
+      } else {
+        console.log("No callback registered for conversation_created");
+      }
+      // Auto-join the new conversation
+      if (data.conversation?.id) {
+        newSocket.emit('join_conversations', [data.conversation.id]);
+      }
     });
 
     setSocket(newSocket);
@@ -116,6 +141,11 @@ export const WebSocketProvider: React.FC<{ children: ReactNode; token: string | 
 
   const clearMessages = useCallback(() => setMessages([]), []);
 
+  const onConversationCreated = useCallback((callback: (conversation: any) => void) => {
+    console.log("Setting conversation created callback");
+    conversationCreatedCallbackRef.current = callback;
+  }, []);
+
   const value: WebSocketContextType = {
     socket,
     isConnected,
@@ -124,8 +154,10 @@ export const WebSocketProvider: React.FC<{ children: ReactNode; token: string | 
     onMessageCreated: () => {},
     onMessageEdited: () => {},
     onMessageDeleted: () => {},
+    onConversationCreated,
     messages,
-    clearMessages
+    clearMessages,
+    setActiveConversationId
   };
 
   return <WebSocketContext.Provider value={value}>{children}</WebSocketContext.Provider>;

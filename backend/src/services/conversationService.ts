@@ -117,3 +117,22 @@ export const getConversationMembers = async (conversationId: string) => {
     return result;
   }, CACHE_CONFIG.USER_TTL_MS);
 };
+
+export const getUsersByIds = async (userIds: string[]) => {
+  return dbRequest(`users_by_ids:${userIds.sort().join(',')}`, async () => {
+    const result = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        name: users.name,
+        avatar: users.avatarPath,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      })
+      .from(users)
+      .where(inArray(users.id, toBigIntArray(userIds)));
+    
+    return result;
+  }, CACHE_CONFIG.USER_TTL_MS);
+};

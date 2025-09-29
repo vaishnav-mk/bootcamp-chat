@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/context/AuthContext";
 import { WebSocketProvider, useWebSocket } from "@/context/WebSocketContext";
+import { NotificationProvider, useNotifications } from "@/context/NotificationContext";
 import { userApi, conversationApi, messageApi } from "@/lib/api";
 import toast from "react-hot-toast";
 import { loadConversationsUtil, createConversationUtil, sendMessageUtil } from "@/utils/conversationUtils";
@@ -15,7 +16,8 @@ import MembersSidebar from "./sidebar/MembersSidebar";
 
 function ChatAppContent() {
   const { user } = useAuth();
-  const { sendMessage, isConnected, messages: wsMessages, joinConversations, clearMessages } = useWebSocket();
+  const { sendMessage, isConnected, messages: wsMessages, joinConversations, clearMessages, setActiveConversationId: setWsActiveConversationId, onConversationCreated } = useWebSocket();
+  const { markAsRead } = useNotifications();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<
     string | null
@@ -28,6 +30,8 @@ function ChatAppContent() {
     setIsLoading(false);
   }, [activeConversationId, joinConversations]);
 
+
+
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
@@ -35,6 +39,37 @@ function ChatAppContent() {
   useEffect(() => {
     setMessages(prev => mergeWebSocketMessages(prev, wsMessages, activeConversationId));
   }, [wsMessages, activeConversationId]);
+
+  useEffect(() => {
+    setWsActiveConversationId(activeConversationId);
+  }, [activeConversationId, setWsActiveConversationId]);
+
+  useEffect(() => {
+    if (activeConversationId) {
+      markAsRead(activeConversationId);
+    }
+  }, [activeConversationId, markAsRead]);
+
+  useEffect(() => {
+    onConversationCreated((newConversation) => {
+      setConversations(prev => [newConversation, ...prev]);
+      toast.success(`Added to new conversation: ${newConversation.name || 'New chat'}`);
+    });
+  }, [onConversationCreated]);
+
+  // Mark messages as read when window becomes visible and user is viewing a conversation
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && activeConversationId) {
+        markAsRead(activeConversationId);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [activeConversationId, markAsRead]);
 
   useEffect(() => {
     const loadMessages = async () => {
@@ -71,14 +106,7 @@ function ChatAppContent() {
     name: string;
     member_ids: string[];
   }) => {
-    let conversationData = { ...data };
-    
-    if (data.type === "direct" && data.member_ids.length === 1) {
-      const { user: targetUser } = await userApi.getUserById(data.member_ids[0]);
-      conversationData.name = targetUser.name;
-    }
-    
-    const { conversation } = await conversationApi.createConversation(conversationData);
+    const { conversation } = await conversationApi.createConversation(data);
     setConversations((prev) => [conversation, ...prev]);
     setActiveConversationId(conversation.id);
   };
@@ -102,11 +130,9 @@ function ChatAppContent() {
         return;
       }
 
-      const { user: targetUser } = await userApi.getUserById(userId);
-      
       const { conversation } = await conversationApi.createConversation({
         type: "direct",
-        name: targetUser.name,
+        name: "", // Let the backend handle the naming
         member_ids: [userId],
       });
       
@@ -155,5 +181,11 @@ export default function ChatApp() {
   const [token, setToken] = useState<string | null>(null);
   useEffect(() => { if (!isLoading) setToken(localStorage.getItem('auth_token')); }, [isLoading]);
   if (isLoading || !token) return <div className="h-screen bg-background flex items-center justify-center"><LoadingSpinner size="lg" /></div>;
-  return !isAuthenticated ? <ChatAppContent /> : <WebSocketProvider token={token}><ChatAppContent /></WebSocketProvider>;
+  return !isAuthenticated ? <ChatAppContent /> : (
+    <NotificationProvider>
+      <WebSocketProvider token={token}>
+        <ChatAppContent />
+      </WebSocketProvider>
+    </NotificationProvider>
+  );
 }

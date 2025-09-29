@@ -10,6 +10,7 @@ import conversationRoutes from "@/routes/conversationRoutes";
 import messageRoutes from "@/routes/messageRoutes";
 import { errorHandler } from "@/utils/errorHandler";
 import { WebSocketService } from "@/services/websocketService";
+import { setWebSocketService } from "@/services/wsServiceInstance";
 
 const app = express();
 const httpServer = createServer(app);
@@ -29,6 +30,7 @@ app.use("/api/messages", messageRoutes);
 app.use(errorHandler);
 
 const wsService = new WebSocketService(httpServer);
+setWebSocketService(wsService);
 
 httpServer.listen(config.port, () => {
   console.log(`Server running on port ${config.port}`);

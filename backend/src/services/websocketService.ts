@@ -60,4 +60,30 @@ export class WebSocketService {
   public sendToConversation(conversationId: string, event: string, data: any) {
     this.io.to(`conversation:${conversationId}`).emit(event, data);
   }
+
+  public sendToUsers(userIds: string[], event: string, data: any) {
+    console.log(`Attempting to send ${event} to users:`, userIds);
+    console.log("Currently connected users:", Array.from(this.connectedUsers.keys()));
+    
+    userIds.forEach(userId => {
+      const socketId = this.connectedUsers.get(userId);
+      console.log(`User ${userId} socketId:`, socketId);
+      if (socketId) {
+        this.io.to(socketId).emit(event, data);
+        console.log(`Sent ${event} to user ${userId} (socket ${socketId})`);
+      } else {
+        console.log(`User ${userId} is not connected`);
+      }
+    });
+  }
+
+  public joinUserToConversation(userId: string, conversationId: string) {
+    const socketId = this.connectedUsers.get(userId);
+    if (socketId) {
+      const socket = this.io.sockets.sockets.get(socketId);
+      if (socket) {
+        socket.join(`conversation:${conversationId}`);
+      }
+    }
+  }
 }

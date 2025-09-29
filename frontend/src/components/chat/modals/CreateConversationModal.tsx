@@ -89,7 +89,7 @@ export default function CreateConversationModal({
 
     const name =
       conversationType === "direct"
-        ? selectedMembers[0]?.name || "direct message"
+        ? selectedMembers.join(", ") || "direct message"
         : conversationName || "group chat";
 
     setIsCreating(true);
