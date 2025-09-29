@@ -1,4 +1,5 @@
 import { ErrorMessage } from "@/constants/errors";
+import { WebSocketEvent } from "@/constants/enums";
 import { 
   createMessage, 
   verifyUserInConversation
@@ -7,7 +8,7 @@ import { serializeMessage } from "@/utils/serialization";
 import { AuthenticatedSocket, WebSocketHandler, CreateMessageData } from "@/types";
 
 const messageCreateHandler: WebSocketHandler = {
-  name: "message_create",
+  name: WebSocketEvent.MESSAGE_CREATE,
   handler: async ({ socket, data, callback, io }) => {
     console.log("message_create event received with data:", data);
     try {
@@ -22,7 +23,7 @@ const messageCreateHandler: WebSocketHandler = {
 
       const message = await createMessage(socket.userId, data);
       const serializedMessage = serializeMessage(message);
-      io.to(`conversation:${data.conversation_id}`).emit('message_created', serializedMessage);
+      io.to(`conversation:${data.conversation_id}`).emit(WebSocketEvent.MESSAGE_CREATED, serializedMessage);
       
       if (callback) {
         callback({ success: true, message: serializedMessage });

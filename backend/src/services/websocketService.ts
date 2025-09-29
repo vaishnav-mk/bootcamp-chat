@@ -3,6 +3,7 @@ import { Server as HTTPServer } from "http";
 import { config } from "@/config/env";
 import { verifyToken } from "@/lib/jwt";
 import { ErrorMessage } from "@/constants/errors";
+import { WebSocketEvent } from "@/constants/enums";
 import { AuthenticatedSocket } from "@/types";
 import handlers from "./websocket/handlers";
 
@@ -38,7 +39,7 @@ export class WebSocketService {
   }
 
   private setupEventHandlers() {
-    this.io.on('connection', (socket: AuthenticatedSocket) => {
+    this.io.on(WebSocketEvent.CONNECTION, (socket: AuthenticatedSocket) => {
       if (socket.userId) {
         this.connectedUsers.set(socket.userId, socket.id);
       }
@@ -50,7 +51,7 @@ export class WebSocketService {
         });
       });
 
-      socket.on('disconnect', () => {
+      socket.on(WebSocketEvent.DISCONNECT, () => {
         if (socket.userId) this.connectedUsers.delete(socket.userId);
       });
     });
