@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
 import { useAuth } from "@/context/AuthContext";
 import type { Conversation, Message } from "@/types";
 
@@ -21,6 +23,7 @@ export default function ChatArea({
 }: ChatAreaProps) {
   const { user } = useAuth();
   const [messageInput, setMessageInput] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,6 +35,18 @@ export default function ChatArea({
     if (messageInput.trim()) {
       onSendMessage(messageInput.trim());
       setMessageInput("");
+      setShowPreview(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      if (messageInput.trim()) {
+        onSendMessage(messageInput.trim());
+        setMessageInput("");
+        setShowPreview(false);
+      }
     }
   };
 
@@ -127,7 +142,33 @@ export default function ChatArea({
                         : "bg-zinc-700 text-white"
                     }`}
                   >
-                    <p>{message.content}</p>
+                    <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                          code: ({ children }) => (
+                            <code className="bg-black/30 px-1 py-0.5 rounded text-sm font-mono">
+                              {children}
+                            </code>
+                          ),
+                          pre: ({ children }) => (
+                            <pre className="bg-black/30 p-2 rounded text-sm font-mono overflow-x-auto my-2">
+                              {children}
+                            </pre>
+                          ),
+                          ul: ({ children }) => <ul className="my-1 ml-4">{children}</ul>,
+                          ol: ({ children }) => <ol className="my-1 ml-4">{children}</ol>,
+                          blockquote: ({ children }) => (
+                            <blockquote className="border-l-2 border-zinc-500 pl-3 my-2 italic">
+                              {children}
+                            </blockquote>
+                          ),
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
                     <div
                       className={`text-xs mt-1 ${isOwnMessage ? "text-blue-100" : "text-zinc-400"}`}
                     >
@@ -142,19 +183,71 @@ export default function ChatArea({
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-4 border-t border-zinc-700 bg-zinc-800">
-        <form onSubmit={handleSendMessage} className="flex space-x-2">
-          <Input
-            value={messageInput}
-            onChange={(e) => setMessageInput(e.target.value)}
-            placeholder={isConnected ? "type a message..." : "connecting..."}
-            className="flex-1"
-            disabled={!isConnected}
-          />
-          <Button type="submit" disabled={!messageInput.trim() || !isConnected}>
-            send
-          </Button>
-        </form>
+      <div className="border-t border-zinc-700 bg-zinc-800">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700">
+          <div className="text-sm text-zinc-400">
+            markdown supported
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowPreview(!showPreview)}
+            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+            disabled={!messageInput.trim()}
+          >
+            {showPreview ? "edit" : "preview"}
+          </button>
+        </div>
+        
+        <div className="p-4">
+          {showPreview && messageInput.trim() ? (
+            <div className="min-h-20 max-h-32 overflow-y-auto p-3 bg-zinc-700 rounded border mb-3">
+              <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                    code: ({ children }) => (
+                      <code className="bg-black/30 px-1 py-0.5 rounded text-sm font-mono">
+                        {children}
+                      </code>
+                    ),
+                    pre: ({ children }) => (
+                      <pre className="bg-black/30 p-2 rounded text-sm font-mono overflow-x-auto my-2">
+                        {children}
+                      </pre>
+                    ),
+                    ul: ({ children }) => <ul className="my-1 ml-4">{children}</ul>,
+                    ol: ({ children }) => <ol className="my-1 ml-4">{children}</ol>,
+                    blockquote: ({ children }) => (
+                      <blockquote className="border-l-2 border-zinc-500 pl-3 my-2 italic">
+                        {children}
+                      </blockquote>
+                    ),
+                  }}
+                >
+                  {messageInput}
+                </ReactMarkdown>
+              </div>
+            </div>
+          ) : null}
+          
+          <form onSubmit={handleSendMessage} className="flex flex-col space-y-2">
+            <Textarea
+              value={messageInput}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMessageInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={isConnected ? "type a message... (markdown supported, ⌘+Enter to send)" : "connecting..."}
+              className="min-h-20 max-h-32"
+              disabled={!isConnected}
+              rows={3}
+            />
+            <div className="flex justify-end">
+              <Button type="submit" disabled={!messageInput.trim() || !isConnected}>
+                send
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
