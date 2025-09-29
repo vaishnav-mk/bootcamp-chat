@@ -4,6 +4,7 @@ import * as userService from "../services/userService.js";
 import { RegisterData, LoginData } from "../validations/userSchemas.js";
 import { ErrorMessage } from "../constants/errors.js";
 import { SuccessMessage } from "../constants/messages.js";
+import { sendSuccess, sendError, sendUnauthorized, sendServerError } from "../utils/responseHelpers";
 import { asyncWrap } from "../middleware/asyncWrap.js";
 
 const registerHandler = async (req: Request, res: Response) => {
@@ -11,12 +12,12 @@ const registerHandler = async (req: Request, res: Response) => {
   
   const existingUser = await userService.fetchUserByEmail(data.email);
   if (existingUser) {
-    return res.status(409).json({ error: ErrorMessage.EMAIL_EXISTS });
+    return sendError(res, ErrorMessage.EMAIL_EXISTS, 409);
   }
 
   const existingUsername = await userService.fetchUserByUsername(data.username);
   if (existingUsername) {
-    return res.status(409).json({ error: ErrorMessage.USERNAME_EXISTS });
+    return sendError(res, ErrorMessage.USERNAME_EXISTS, 409);
   }
 
   try {
@@ -27,13 +28,9 @@ const registerHandler = async (req: Request, res: Response) => {
       name: data.name,
     });
 
-    res.status(201).json({
-      message: SuccessMessage.USER_REGISTERED,
-      user: result.user,
-      token: result.token,
-    });
+    sendSuccess(res, { user: result.user, token: result.token }, SuccessMessage.USER_REGISTERED, 201);
   } catch (error) {
-    res.status(500).json({ error: ErrorMessage.REGISTRATION_FAILED });
+    sendServerError(res, ErrorMessage.REGISTRATION_FAILED);
   }
 };
 
@@ -44,26 +41,19 @@ const loginHandler = async (req: Request, res: Response) => {
     const result = await authService.authenticateUser(data.email, data.password);
 
     if (!result) {
-      return res.status(401).json({ error: ErrorMessage.INVALID_CREDENTIALS });
+      return sendUnauthorized(res, ErrorMessage.INVALID_CREDENTIALS);
     }
 
-    res.json({
-      message: SuccessMessage.LOGIN_SUCCESSFUL,
-      user: result.user,
-      token: result.token,
-    });
+    sendSuccess(res, { user: result.user, token: result.token }, SuccessMessage.LOGIN_SUCCESSFUL);
   } catch (error) {
-    res.status(500).json({ error: ErrorMessage.LOGIN_FAILED });
+    sendServerError(res, ErrorMessage.LOGIN_FAILED);
   }
 };
 
 const logoutHandler = async (req: Request, res: Response) => {
   const userId = req.user?.id;
   
-  res.json({ 
-    message: SuccessMessage.LOGOUT_SUCCESSFUL,
-    userId: userId?.toString() 
-  });
+  sendSuccess(res, { userId: userId?.toString() }, SuccessMessage.LOGOUT_SUCCESSFUL);
 };
 
 export const register = asyncWrap(registerHandler);

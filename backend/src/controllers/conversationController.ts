@@ -3,6 +3,9 @@ import * as conversationService from "@/services/conversationService";
 import { CreateConversationData } from "../validations/conversationSchemas";
 import { ErrorMessage } from "../constants/errors";
 import { SuccessMessage } from "../constants/messages";
+import { ConversationType } from "../constants/enums";
+import { serializeConversation } from "../utils/conversationSerializer";
+import { serializeUsers } from "../utils/userSerializer";
 import { asyncWrap } from "../middleware/asyncWrap.js";
 
 const createConversationHandler = async (req: Request, res: Response) => {
@@ -21,11 +24,11 @@ const createConversationHandler = async (req: Request, res: Response) => {
 
     let conversationType = data.type;
 
-    if (data.type === 'group' && allMemberIds.length === 2) {
-      conversationType = 'direct';
+    if (data.type === ConversationType.GROUP && allMemberIds.length === 2) {
+      conversationType = ConversationType.DIRECT;
     }
 
-    if (conversationType === 'direct' && allMemberIds.length === 2) {
+    if (conversationType === ConversationType.DIRECT && allMemberIds.length === 2) {
       const existingConversation = await conversationService.findExistingDirectConversation(
         allMemberIds[0], 
         allMemberIds[1]
@@ -33,25 +36,11 @@ const createConversationHandler = async (req: Request, res: Response) => {
 
       if (existingConversation) {
         const members = await conversationService.getConversationMembers(existingConversation.id.toString());
+        const serializedMembers = serializeUsers(members, true);
         
         return res.status(200).json({
           message: SuccessMessage.EXISTING_CONVERSATION_RETURNED,
-          conversation: {
-            id: existingConversation.id.toString(),
-            type: existingConversation.type,
-            name: existingConversation.name,
-            createdBy: existingConversation.createdBy.toString(),
-            createdAt: existingConversation.createdAt,
-            members: members.map(member => ({
-              id: member.id.toString(),
-              email: member.email,
-              username: member.username,
-              name: member.name,
-              avatar: member.avatar,
-              createdAt: member.createdAt,
-              updatedAt: member.updatedAt,
-            })),
-          },
+          conversation: serializeConversation(existingConversation, serializedMembers),
         });
       }
     }
@@ -64,25 +53,11 @@ const createConversationHandler = async (req: Request, res: Response) => {
     );
 
     const members = await conversationService.getConversationMembers(conversation.id.toString());
+    const serializedMembers = serializeUsers(members, true);
 
     res.status(201).json({
       message: SuccessMessage.CONVERSATION_CREATED,
-      conversation: {
-        id: conversation.id.toString(),
-        type: conversation.type,
-        name: conversation.name,
-        createdBy: conversation.createdBy.toString(),
-        createdAt: conversation.createdAt,
-        members: members.map(member => ({
-          id: member.id.toString(),
-          email: member.email,
-          username: member.username,
-          name: member.name,
-          avatar: member.avatar,
-          createdAt: member.createdAt,
-          updatedAt: member.updatedAt,
-        })),
-      },
+      conversation: serializeConversation(conversation, serializedMembers),
     });
   } catch (error) {
     console.error("Error occurred while creating conversation:", error);
@@ -100,23 +75,8 @@ const getUserConversationsHandler = async (req: Request, res: Response) => {
     const formattedConversations = await Promise.all(
       conversations.map(async (conversation) => {
         const members = await conversationService.getConversationMembers(conversation.id.toString());
-        
-        return {
-          id: conversation.id.toString(),
-          type: conversation.type,
-          name: conversation.name,
-          createdBy: conversation.createdBy.toString(),
-          createdAt: conversation.createdAt,
-          members: members.map(member => ({
-            id: member.id.toString(),
-            email: member.email,
-            username: member.username,
-            name: member.name,
-            avatar: member.avatar,
-            createdAt: member.createdAt,
-            updatedAt: member.updatedAt,
-          })),
-        };
+        const serializedMembers = serializeUsers(members, true);
+        return serializeConversation(conversation, serializedMembers);
       })
     );
 

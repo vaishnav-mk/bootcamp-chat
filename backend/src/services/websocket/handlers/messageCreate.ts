@@ -1,20 +1,14 @@
 import { ErrorMessage } from "@/constants/errors";
 import { 
   createMessage, 
-  verifyUserInConversation,
-  CreateMessageData 
+  verifyUserInConversation
 } from "@/services/messageService";
 import { serializeMessage } from "@/utils/serialization";
-import { AuthenticatedSocket, WebSocketHandler } from "../types";
+import { AuthenticatedSocket, WebSocketHandler, CreateMessageData } from "@/types";
 
 const messageCreateHandler: WebSocketHandler = {
   name: "message_create",
-  handler: async ({ socket, data, callback, io }: {
-    socket: AuthenticatedSocket;
-    data: CreateMessageData;
-    callback?: any;
-    io: any;
-  }) => {
+  handler: async ({ socket, data, callback, io }) => {
     console.log("message_create event received with data:", data);
     try {
       if (!socket.userId) {

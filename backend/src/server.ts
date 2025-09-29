@@ -31,7 +31,7 @@ app.use(errorHandler);
 const wsService = new WebSocketService(httpServer);
 
 httpServer.listen(config.port, () => {
-  console.log(`🚀 Server running on port ${config.port}`);
-  console.log(`📡 WebSocket server ready`);
-  console.log(`🌍 Environment: ${config.nodeEnv}`);
+  console.log(`Server running on port ${config.port}`);
+  console.log(`WebSocket server ready at ws://localhost:${config.port}`);
+  console.log(`Environment: ${config.nodeEnv}`);
 });

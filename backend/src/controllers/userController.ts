@@ -3,6 +3,7 @@ import * as userService from "@/services/userService";
 import { UserParamsData, UpdateProfileData, UsernameParamsData } from "../validations/userSchemas.js";
 import { ErrorMessage } from "../constants/errors.js";
 import { SuccessMessage } from "../constants/messages.js";
+import { serializeUser } from "../utils/userSerializer";
 import { asyncWrap } from "../middleware/asyncWrap.js";
 
 const getCurrentUserHandler = async (req: Request, res: Response) => {
@@ -15,17 +16,7 @@ const getCurrentUserHandler = async (req: Request, res: Response) => {
       return res.status(404).json({ error: ErrorMessage.USER_NOT_FOUND });
     }
     
-    res.json({
-      user: {
-        id: user.id.toString(),
-        email: user.email,
-        username: user.username,
-        name: user.name,
-        avatarPath: user.avatarPath,
-        status: user.status,
-        createdAt: user.createdAt,
-      },
-    });
+    res.json({ user: serializeUser(user, true) });
   } catch (error) {
     res.status(500).json({ error: ErrorMessage.FAILED_TO_FETCH_USER });
   }
@@ -40,17 +31,7 @@ const getUserByIdHandler = async (req: Request, res: Response) => {
       return res.status(404).json({ error: ErrorMessage.USER_NOT_FOUND });
     }
     
-    res.json({
-      user: {
-        id: user.id.toString(),
-        email: user.email,
-        username: user.username,
-        name: user.name,
-        avatarPath: user.avatarPath,
-        status: user.status,
-        createdAt: user.createdAt,
-      },
-    });
+    res.json({ user: serializeUser(user, true) });
   } catch (error) {
     res.status(500).json({ error: ErrorMessage.FAILED_TO_FETCH_USER });
   }
@@ -65,15 +46,7 @@ const getUserByUsernameHandler = async (req: Request, res: Response) => {
       return res.status(404).json({ error: ErrorMessage.USER_NOT_FOUND });
     }
     
-    res.json({
-      user: {
-        id: user.id.toString(),
-        username: user.username,
-        name: user.name,
-        avatarPath: user.avatarPath,
-        status: user.status,
-      },
-    });
+    res.json({ user: serializeUser(user) });
   } catch (error) {
     res.status(500).json({ error: ErrorMessage.FAILED_TO_FETCH_USER });
   }
@@ -101,14 +74,7 @@ const updateProfileHandler = async (req: Request, res: Response) => {
     
     res.json({
       message: SuccessMessage.PROFILE_UPDATED,
-      user: {
-        id: updatedUser.id.toString(),
-        email: updatedUser.email,
-        username: updatedUser.username,
-        name: updatedUser.name,
-        avatarPath: updatedUser.avatarPath,
-        status: updatedUser.status,
-      },
+      user: serializeUser(updatedUser),
     });
   } catch (error) {
     res.status(500).json({ error: ErrorMessage.FAILED_TO_UPDATE_PROFILE });

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken, JWTPayload } from '../lib/jwt.js';
+import { verifyToken } from '../lib/jwt.js';
 import { ErrorMessage } from '../constants/errors.js';
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction): void => {

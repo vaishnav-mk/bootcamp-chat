@@ -5,10 +5,11 @@ import { CACHE_CONFIG } from "@/config/cache";
 import { clearCache } from "@/utils/cache";
 import { eq } from "drizzle-orm";
 import { generateSnowflake } from "../utils/snowflake.js";
+import { toBigInt } from "../utils/dbHelpers";
 
 export const fetchUserById = async (id: string | number) => {
   return dbRequest(`user:${id}`, async () => {
-    const result = await db.select().from(users).where(eq(users.id, BigInt(id)));
+    const result = await db.select().from(users).where(eq(users.id, toBigInt(id)));
     return result[0] || null;
   }, CACHE_CONFIG.USER_TTL_MS);
 };
@@ -53,7 +54,7 @@ export const updateUserProfile = async (id: string, updates: {
   const result = await db
     .update(users)
     .set({ ...updates, updatedAt: new Date() })
-    .where(eq(users.id, BigInt(id)))
+    .where(eq(users.id, toBigInt(id)))
     .returning();
   
   clearCache(`user:${id}`);

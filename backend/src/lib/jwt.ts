@@ -1,6 +1,7 @@
 import { ErrorMessage } from '../constants/errors.js';
 import jwt from 'jsonwebtoken';
 import dotenv from "dotenv";
+import { JWTPayload } from '../types';
 
 dotenv.config();
 
@@ -8,11 +9,6 @@ const JWT_SECRET = process.env.JWT_SECRET
 
 if (!JWT_SECRET) {
   throw new Error(ErrorMessage.JWT_SECRET_NOT_DEFINED);
-}
-
-export interface JWTPayload {
-  userId: string;
-  email: string;
 }
 
 export const generateToken = (userId: string, email: string): string => {

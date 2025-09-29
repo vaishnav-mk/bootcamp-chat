@@ -1,12 +1,9 @@
 import { verifyUserInConversation } from "@/services/messageService";
-import { AuthenticatedSocket, WebSocketHandler } from "../types";
+import { AuthenticatedSocket, WebSocketHandler } from "@/types";
 
 const joinConversationsHandler: WebSocketHandler = {
   name: "join_conversations",
-  handler: async ({ socket, data }: {
-    socket: AuthenticatedSocket;
-    data: string[];
-  }) => {
+  handler: async ({ socket, data }) => {
     if (!socket.userId) return;
 
     for (const conversationId of data) {

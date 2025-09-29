@@ -6,6 +6,8 @@ import { dbRequest } from "@/services/db/dbRequest";
 import { CACHE_CONFIG } from "@/config/cache";
 import { eq, inArray, desc, and, sql } from "drizzle-orm";
 import { generateSnowflake } from "../utils/snowflake.js";
+import { ConversationType } from "../constants/enums";
+import { toBigInt, toBigIntArray } from "../utils/dbHelpers";
 
 export const createConversation = async (
   createdBy: string,
@@ -19,14 +21,14 @@ export const createConversation = async (
     id: conversationId,
     type,
     name,
-    createdBy: BigInt(createdBy),
+    createdBy: toBigInt(createdBy),
   };
 
   const [conversation] = await db.insert(conversations).values(newConversation).returning();
 
   const memberEntries = memberIds.map(memberId => ({
     conversationId,
-    userId: BigInt(memberId),
+    userId: toBigInt(memberId),
   }));
 
   await db.insert(conversationMembers).values(memberEntries);
@@ -36,7 +38,7 @@ export const createConversation = async (
 
 export const fetchConversationById = async (id: string) => {
   return dbRequest(`conversation:${id}`, async () => {
-    const result = await db.select().from(conversations).where(eq(conversations.id, BigInt(id)));
+    const result = await db.select().from(conversations).where(eq(conversations.id, toBigInt(id)));
     return result[0] || null;
   }, CACHE_CONFIG.USER_TTL_MS);
 };
@@ -45,7 +47,7 @@ export const validateMemberIds = async (memberIds: string[]) => {
   const result = await db
     .select({ id: users.id })
     .from(users)
-    .where(inArray(users.id, memberIds.map(id => BigInt(id))));
+    .where(inArray(users.id, toBigIntArray(memberIds)));
   
   return result.length === memberIds.length;
 };
@@ -62,7 +64,7 @@ export const getUserConversations = async (userId: string) => {
       })
       .from(conversations)
       .innerJoin(conversationMembers, eq(conversations.id, conversationMembers.conversationId))
-      .where(eq(conversationMembers.userId, BigInt(userId)))
+      .where(eq(conversationMembers.userId, toBigInt(userId)))
       .orderBy(desc(conversations.createdAt));
     
     return result;
@@ -85,8 +87,8 @@ export const findExistingDirectConversation = async (userId1: string, userId2: s
       .innerJoin(conversationMembers, eq(conversations.id, conversationMembers.conversationId))
       .where(
         and(
-          eq(conversations.type, 'direct'),
-          inArray(conversationMembers.userId, [BigInt(userId1), BigInt(userId2)])
+          eq(conversations.type, ConversationType.DIRECT),
+          inArray(conversationMembers.userId, toBigIntArray([userId1, userId2]))
         )
       )
       .groupBy(conversations.id, conversations.type, conversations.name, conversations.createdBy, conversations.createdAt)
@@ -110,7 +112,7 @@ export const getConversationMembers = async (conversationId: string) => {
       })
       .from(conversationMembers)
       .innerJoin(users, eq(conversationMembers.userId, users.id))
-      .where(eq(conversationMembers.conversationId, BigInt(conversationId)));
+      .where(eq(conversationMembers.conversationId, toBigInt(conversationId)));
     
     return result;
   }, CACHE_CONFIG.USER_TTL_MS);

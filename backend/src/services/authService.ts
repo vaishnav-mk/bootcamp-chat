@@ -1,17 +1,8 @@
 import bcrypt from 'bcrypt';
 import * as userService from './userService.js';
 import { generateToken } from '../lib/jwt.js';
-
-export interface AuthResult {
-  user: {
-    id: string;
-    email: string;
-    username: string;
-    name: string;
-    avatarPath: string | null;
-  };
-  token: string;
-}
+import { serializeUser } from '../utils/userSerializer';
+import { AuthResult, CreateUserData } from '../types';
 
 export const hashPassword = async (password: string): Promise<string> => {
   const saltRounds = 12;
@@ -40,13 +31,7 @@ export const registerUser = async (userData: {
   const token = generateToken(user.id.toString(), user.email);
 
   return {
-    user: {
-      id: user.id.toString(),
-      email: user.email,
-      username: user.username,
-      name: user.name,
-      avatarPath: user.avatarPath,
-    },
+    user: serializeUser(user),
     token,
   };
 };
@@ -67,13 +52,7 @@ export const authenticateUser = async (email: string, password: string): Promise
   const token = generateToken(user.id.toString(), user.email);
 
   return {
-    user: {
-      id: user.id.toString(),
-      email: user.email,
-      username: user.username,
-      name: user.name,
-      avatarPath: user.avatarPath,
-    },
+    user: serializeUser(user),
     token,
   };
 };

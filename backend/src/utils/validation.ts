@@ -1,16 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { z, ZodError, ZodSchema } from 'zod';
-
-export interface ValidationError {
-  field: string;
-  message: string;
-}
-
-interface ValidationSchemas<TBody = any, TQuery = any, TParams = any> {
-  body?: ZodSchema<TBody>;
-  query?: ZodSchema<TQuery>;
-  params?: ZodSchema<TParams>;
-}
+import { ValidationError, ValidationSchemas } from '../types';
 
 export const formatZodErrors = (error: ZodError): ValidationError[] => {
   return error.issues.map((err) => ({
@@ -20,7 +10,7 @@ export const formatZodErrors = (error: ZodError): ValidationError[] => {
 };
 
 export const validate = <TBody = any, TQuery = any, TParams = any>(
-  schemas: ValidationSchemas<TBody, TQuery, TParams>
+  schemas: ValidationSchemas<ZodSchema<TBody>, ZodSchema<TQuery>, ZodSchema<TParams>>
 ) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {

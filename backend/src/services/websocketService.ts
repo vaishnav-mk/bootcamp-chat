@@ -3,7 +3,7 @@ import { Server as HTTPServer } from "http";
 import { config } from "@/config/env";
 import { verifyToken } from "@/lib/jwt";
 import { ErrorMessage } from "@/constants/errors";
-import { AuthenticatedSocket } from "./websocket/types";
+import { AuthenticatedSocket } from "@/types";
 import handlers from "./websocket/handlers";
 
 export class WebSocketService {
