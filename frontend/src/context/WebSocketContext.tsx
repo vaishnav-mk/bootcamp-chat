@@ -30,6 +30,8 @@ interface WebSocketContextType {
   socket: Socket | null;
   isConnected: boolean;
   sendMessage: (data: CreateMessageData) => Promise<Message>;
+  editMessage: (messageId: string, content: string) => Promise<Message>;
+  deleteMessage: (messageId: string) => Promise<{ message_id: string; deleted: boolean }>;
   joinConversations: (conversationIds: string[]) => void;
   onMessageCreated: (callback: (message: Message) => void) => void;
   onMessageEdited: (callback: (message: Message) => void) => void;
@@ -52,21 +54,29 @@ export const WebSocketProvider: React.FC<{ children: ReactNode; token: string | 
 
   useEffect(() => {
     if (!token) return;
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3001';
+    const wsUrl =
+  typeof window !== "undefined"
+    ? process.env.NEXT_PUBLIC_WS_URL || "http://43.205.121.157:3001"
+    : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
     const newSocket = io(wsUrl, { 
       auth: { token },
       transports: ['websocket', 'polling']
     });
+    console.log('Attempting to connect to WebSocket server at', wsUrl);
 
     newSocket.on('connect', () => {
+      console.log('WebSocket connected');
       setIsConnected(true);
     });
 
     newSocket.on('disconnect', () => {
+      console.warn('WebSocket disconnected');
       setIsConnected(false);
     });
 
     newSocket.on('connect_error', (error) => {
+      console.error('WebSocket connection error:', error);
       setIsConnected(false);
     });
 
@@ -131,6 +141,47 @@ export const WebSocketProvider: React.FC<{ children: ReactNode; token: string | 
     });
   }, [socket, isConnected]);
 
+  const editMessage = useCallback((messageId: string, content: string): Promise<Message> => {
+    return new Promise((resolve, reject) => {
+      if (!socket || !isConnected) {
+        return reject(new Error('Socket not connected'));
+      }
+
+      const data = {
+        message_id: String(messageId),
+        content: content,
+      };
+      
+      socket.emit('message_edit', data, (response: any) => {
+        if (response.success) {
+          resolve(response.message);
+        } else {
+          reject(new Error(response.error));
+        }
+      });
+    });
+  }, [socket, isConnected]);
+
+  const deleteMessage = useCallback((messageId: string): Promise<{ message_id: string; deleted: boolean }> => {
+    return new Promise((resolve, reject) => {
+      if (!socket || !isConnected) {
+        return reject(new Error('Socket not connected'));
+      }
+
+      const data = {
+        message_id: String(messageId),
+      };
+      
+      socket.emit('message_delete', data, (response: any) => {
+        if (response.success) {
+          resolve(response.result);
+        } else {
+          reject(new Error(response.error));
+        }
+      });
+    });
+  }, [socket, isConnected]);
+
   const joinConversations = useCallback((conversationIds: string[]) => {
     if (socket && isConnected) {
       const serializedIds = conversationIds.map(id => String(id));
@@ -149,6 +200,8 @@ export const WebSocketProvider: React.FC<{ children: ReactNode; token: string | 
     socket,
     isConnected,
     sendMessage,
+    editMessage,
+    deleteMessage,
     joinConversations,
     onMessageCreated: () => {},
     onMessageEdited: () => {},

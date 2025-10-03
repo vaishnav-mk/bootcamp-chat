@@ -1,6 +1,9 @@
 import type { Conversation, User } from "@/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE_URL =
+  typeof window !== "undefined"
+    ? "" // empty string: will use relative paths, Vercel rewrites will proxy
+    : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 class ApiError extends Error {
   constructor(

@@ -1,0 +1,29 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chat-app-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    networks:
+      - chat-app-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: chat-app-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - backend
+    networks:
+      - chat-app-network
+
+networks:
+  chat-app-network:
+    driver: bridge

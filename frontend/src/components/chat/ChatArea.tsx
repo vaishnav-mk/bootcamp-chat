@@ -6,7 +6,12 @@ import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
 import { useAuth } from "@/context/AuthContext";
+import { useWebSocket } from "@/context/WebSocketContext";
+import toast from "react-hot-toast";
 import type { Conversation, Message } from "@/types";
+import MessageActionsDropdown from "./message/MessageActionsDropdown";
+import EditMessageModal from "./message/EditMessageModal";
+import DeleteConfirmationModal from "./message/DeleteConfirmationModal";
 
 interface ChatAreaProps {
   conversation?: Conversation;
@@ -22,7 +27,14 @@ export default function ChatArea({
   isConnected = true,
 }: ChatAreaProps) {
   const { user } = useAuth();
+  const { editMessage, deleteMessage } = useWebSocket();
   const [messageInput, setMessageInput] = useState("");
+  const [selectedMessageActions, setSelectedMessageActions] = useState<{
+    message: Message;
+    position: { x: number; y: number };
+  } | null>(null);
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [deletingMessage, setDeletingMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,6 +64,38 @@ export default function ChatArea({
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const handleMessageRightClick = (e: React.MouseEvent, message: Message) => {
+    e.preventDefault();
+    
+    // Only allow actions on own messages
+    if (message.senderId !== user?.id) return;
+    
+    setSelectedMessageActions({
+      message,
+      position: { x: e.clientX, y: e.clientY }
+    });
+  };
+
+  const handleEditMessage = async (messageId: string, newContent: string) => {
+    try {
+      await editMessage(messageId, newContent);
+      toast.success("Message updated");
+    } catch (error) {
+      toast.error("Failed to update message");
+      throw error;
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      await deleteMessage(messageId);
+      toast.success("Message deleted");
+    } catch (error) {
+      toast.error("Failed to delete message");
+      throw error;
+    }
   };
 
   if (!conversation) {
@@ -133,11 +177,12 @@ export default function ChatArea({
                     </div>
                   )}
                   <div
-                    className={`px-4 py-2 rounded-lg ${
+                    className={`px-4 py-2 rounded-lg cursor-pointer ${
                       isOwnMessage
                         ? "bg-blue-600 text-white"
                         : "bg-zinc-700 text-white"
                     }`}
+                    onContextMenu={(e) => handleMessageRightClick(e, message)}
                   >
                     <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
                       <ReactMarkdown
@@ -167,9 +212,12 @@ export default function ChatArea({
                       </ReactMarkdown>
                     </div>
                     <div
-                      className={`text-xs mt-1 ${isOwnMessage ? "text-blue-100" : "text-zinc-400"}`}
+                      className={`text-xs mt-1 flex items-center gap-1 ${isOwnMessage ? "text-blue-100" : "text-zinc-400"}`}
                     >
-                      {formatTime(message.createdAt)}
+                      <span>{formatTime(message.createdAt)}</span>
+                      {message.updatedAt && (
+                        <span className="italic">(edited)</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -283,6 +331,39 @@ export default function ChatArea({
           </form>
         </div>
       </div>
+
+      {/* Message Actions Dropdown */}
+      {selectedMessageActions && (
+        <MessageActionsDropdown
+          onEdit={() => {
+            setEditingMessage(selectedMessageActions.message);
+            setSelectedMessageActions(null);
+          }}
+          onDelete={() => {
+            setDeletingMessage(selectedMessageActions.message);
+            setSelectedMessageActions(null);
+          }}
+          onClose={() => setSelectedMessageActions(null)}
+          position={selectedMessageActions.position}
+        />
+      )}
+
+      {/* Edit Message Modal */}
+      {editingMessage && (
+        <EditMessageModal
+          message={editingMessage}
+          onSave={handleEditMessage}
+          onClose={() => setEditingMessage(null)}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingMessage && (
+        <DeleteConfirmationModal
+          onConfirm={() => handleDeleteMessage(deletingMessage.id)}
+          onClose={() => setDeletingMessage(null)}
+        />
+      )}
     </div>
   );
 }
