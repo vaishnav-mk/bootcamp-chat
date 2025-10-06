@@ -44,7 +44,6 @@ export class WebSocketService {
         this.connectedUsers.set(socket.userId, socket.id);
       }
 
-      // Register all handlers
       handlers.forEach(handler => {
         socket.on(handler.name, async (data: any, callback?: any) => {
           await handler.handler({ socket, data, callback, io: this.io });
@@ -62,17 +61,10 @@ export class WebSocketService {
   }
 
   public sendToUsers(userIds: string[], event: string, data: any) {
-    console.log(`Attempting to send ${event} to users:`, userIds);
-    console.log("Currently connected users:", Array.from(this.connectedUsers.keys()));
-    
     userIds.forEach(userId => {
       const socketId = this.connectedUsers.get(userId);
-      console.log(`User ${userId} socketId:`, socketId);
       if (socketId) {
         this.io.to(socketId).emit(event, data);
-        console.log(`Sent ${event} to user ${userId} (socket ${socketId})`);
-      } else {
-        console.log(`User ${userId} is not connected`);
       }
     });
   }

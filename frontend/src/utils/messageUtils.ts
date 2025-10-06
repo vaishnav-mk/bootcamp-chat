@@ -5,14 +5,12 @@ export const mergeWebSocketMessages = (
   wsMessages: any[],
   activeConversationId: string | null
 ): Message[] => {
-  if (!activeConversationId) return prevMessages;
-  
-  const conversationMessages = wsMessages.filter(msg => msg.conversationId === activeConversationId);
   const combined = [...prevMessages];
   
-  conversationMessages.forEach(wsMsg => {
-    if (!combined.find(msg => msg.id === wsMsg.id) && wsMsg.sender) {
-      combined.push({
+  wsMessages.forEach(wsMsg => {
+    const existingIndex = combined.findIndex(msg => msg.id === wsMsg.id);
+    if (existingIndex === -1 && wsMsg.sender) {
+      const processedMessage = {
         ...wsMsg,
         messageType: (wsMsg.messageType as "text" | "image" | "file") || "text",
         updatedAt: wsMsg.updatedAt || wsMsg.createdAt,
@@ -21,11 +19,12 @@ export const mergeWebSocketMessages = (
           email: wsMsg.sender.email,
           username: wsMsg.sender.username,
           name: wsMsg.sender.name,
-          avatar: undefined,
-          createdAt: '',
-          updatedAt: ''
+          avatar: wsMsg.sender.avatar,
+          createdAt: wsMsg.sender.createdAt || '',
+          updatedAt: wsMsg.sender.updatedAt || ''
         }
-      });
+      };
+      combined.push(processedMessage);
     }
   });
   

@@ -2,7 +2,7 @@ import type { Conversation, User } from "@/types";
 
 const API_BASE_URL =
   typeof window !== "undefined"
-    ? "" // empty string: will use relative paths, Vercel rewrites will proxy
+    ? process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001" // Use backend URL for client-side requests
     : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 class ApiError extends Error {
@@ -105,7 +105,7 @@ export const conversationApi = {
   getConversations: () =>
     apiRequest<{ conversations: Conversation[] }>("/api/conversations"),
   createConversation: (data: {
-    type: "direct" | "group";
+    type: "direct" | "group" | "llm";
     name?: string;
     member_ids: string[];
   }) =>

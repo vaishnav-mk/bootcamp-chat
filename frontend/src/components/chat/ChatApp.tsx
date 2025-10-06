@@ -24,6 +24,7 @@ function ChatAppContent() {
   >(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isThinking, setIsThinking] = useState(false);
 
   const loadConversations = useCallback(async () => {
     await loadConversationsUtil(setConversations, setActiveConversationId, joinConversations, activeConversationId);
@@ -42,6 +43,7 @@ function ChatAppContent() {
 
   useEffect(() => {
     setWsActiveConversationId(activeConversationId);
+    setIsThinking(false);
   }, [activeConversationId, setWsActiveConversationId]);
 
   useEffect(() => {
@@ -57,7 +59,6 @@ function ChatAppContent() {
     });
   }, [onConversationCreated]);
 
-  // Mark messages as read when window becomes visible and user is viewing a conversation
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && activeConversationId) {
@@ -97,12 +98,35 @@ function ChatAppContent() {
     (m) => m.conversationId === activeConversationId,
   );
 
+  useEffect(() => {
+    if (!isThinking || !activeConversationId) return;
+    
+    const activeConversation = conversations.find(c => c.id === activeConversationId);
+    if (activeConversation?.type !== "llm") return;
+    
+    const lastMessage = conversationMessages[conversationMessages.length - 1];
+    
+    if (lastMessage && (lastMessage.metadata?.isLLMResponse || lastMessage.senderId !== user?.id)) {
+      const timer = setTimeout(() => {
+        setIsThinking(false);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [conversationMessages, isThinking, activeConversationId, conversations, user?.id]);
+
   const handleSendMessage = async (content: string) => {
+    const activeConversation = conversations.find(c => c.id === activeConversationId);
+    
+    if (activeConversation?.type === "llm") {
+      setIsThinking(true);
+    }
+    
     await sendMessageUtil(content, activeConversationId, user, isConnected, sendMessage);
   };
 
   const handleCreateConversation = async (data: {
-    type: "direct" | "group";
+    type: "direct" | "group" | "llm";
     name: string;
     member_ids: string[];
   }) => {
@@ -132,7 +156,7 @@ function ChatAppContent() {
 
       const { conversation } = await conversationApi.createConversation({
         type: "direct",
-        name: "", // Let the backend handle the naming
+        name: "",
         member_ids: [userId],
       });
       
@@ -159,11 +183,18 @@ function ChatAppContent() {
         onConversationSelect={setActiveConversationId}
         onCreateConversation={handleCreateConversation}
         onReorderConversations={handleReorderConversations}
+        setConversations={setConversations}
+        setActiveConversationId={setActiveConversationId}
       />
       <ChatArea
-        conversation={activeConversation}
+        conversation={activeConversation || null}
         messages={conversationMessages}
         onSendMessage={handleSendMessage}
+        isConnected={isConnected}
+        isThinking={isThinking}
+        setConversations={setConversations}
+        setActiveConversationId={setActiveConversationId}
+        conversations={conversations}
       />
       {user && (
         <MembersSidebar

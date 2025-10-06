@@ -1,4 +1,7 @@
 export const toBigInt = (value: string | number | bigint): bigint => {
+  if (value === null || value === undefined) {
+    throw new Error(`Cannot convert ${value} to BigInt`);
+  }
   return typeof value === 'bigint' ? value : BigInt(value);
 };
 

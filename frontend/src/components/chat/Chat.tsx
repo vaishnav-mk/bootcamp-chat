@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useWebSocket } from '@/context/WebSocketContext';
+import { useAuth } from '@/context/AuthContext';
 import { messageApi } from '@/lib/api';
 
 interface Message {
@@ -56,20 +57,17 @@ export const Chat: React.FC<ChatProps> = ({ conversationId, currentUserId }) => 
     setLoading(true);
     try {
       if (isConnected) {
-        // Try WebSocket first
         await sendMessage({
           conversation_id: conversationId,
           content: newMessage.trim(),
           message_type: 'text'
         });
       } else {
-        // Fallback to REST API if WebSocket is not connected
         const data = await messageApi.createMessage({
           conversation_id: conversationId,
           content: newMessage.trim(),
           message_type: 'text'
         });
-        // Add the new message to the local state
         setMessages(prev => [...prev, data.message]);
       }
       setNewMessage('');
@@ -93,7 +91,6 @@ export const Chat: React.FC<ChatProps> = ({ conversationId, currentUserId }) => 
 
   return (
     <div className="flex flex-col h-full">
-      {/* Connection Status */}
       <div className="p-3 border-b bg-gray-50">
         <div className="flex items-center gap-2">
           <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
@@ -103,7 +100,6 @@ export const Chat: React.FC<ChatProps> = ({ conversationId, currentUserId }) => 
         </div>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => {
           const isOwn = message.senderId === currentUserId;

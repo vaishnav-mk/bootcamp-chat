@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@electric-sql/pglite": "^0.3.9",
+    "@google/genai": "^1.22.0",
     "@neondatabase/serverless": "^1.0.1",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",

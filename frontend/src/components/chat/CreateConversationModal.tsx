@@ -3,14 +3,16 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { userApi } from "../../lib/api";
+import type { Conversation } from "../../types";
 
 interface CreateConversationModalProps {
   onClose: () => void;
   onCreateConversation: (data: {
-    type: "direct" | "group";
+    type: "direct" | "group" | "llm";
     name: string;
     member_ids: string[];
   }) => void;
+  conversations?: Conversation[];
 }
 
 interface User {
@@ -24,8 +26,9 @@ interface User {
 export default function CreateConversationModal({
   onClose,
   onCreateConversation,
+  conversations,
 }: CreateConversationModalProps) {
-  const [conversationType, setConversationType] = useState<"direct" | "group">(
+  const [conversationType, setConversationType] = useState<"direct" | "group" | "llm">(
     "direct",
   );
   const [conversationName, setConversationName] = useState("");
@@ -33,6 +36,8 @@ export default function CreateConversationModal({
   const [usernameInput, setUsernameInput] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+
+  const hasExistingLLMChat = conversations?.some(conv => conv.type === 'llm');
 
   const addUserByUsername = async () => {
     if (!usernameInput.trim()) return;
@@ -83,9 +88,16 @@ export default function CreateConversationModal({
       return;
     }
 
+    if (conversationType === "llm" && !conversationName.trim()) {
+      toast.error("please enter a name for the AI chat");
+      return;
+    }
+
     const name =
       conversationType === "direct"
         ? selectedMembers[0]?.name || "direct message"
+        : conversationType === "llm"
+        ? conversationName || "AI Assistant"
         : conversationName || "group chat";
 
     setIsCreating(true);
@@ -133,14 +145,14 @@ export default function CreateConversationModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          <div className="flex bg-zinc-700 p-1 rounded">
+          <div className="grid grid-cols-3 bg-zinc-700 p-1 rounded">
             <button
               type="button"
               onClick={() => {
                 setConversationType("direct");
                 setSelectedMembers([]);
               }}
-              className={`flex-1 py-2 px-4 text-sm font-medium transition-colors ${
+              className={`py-2 px-4 text-sm font-medium transition-colors ${
                 conversationType === "direct"
                   ? "bg-blue-600 text-white"
                   : "text-zinc-300 hover:text-white"
@@ -154,13 +166,40 @@ export default function CreateConversationModal({
                 setConversationType("group");
                 setSelectedMembers([]);
               }}
-              className={`flex-1 py-2 px-4 text-sm font-medium transition-colors ${
+              className={`py-2 px-4 text-sm font-medium transition-colors ${
                 conversationType === "group"
                   ? "bg-blue-600 text-white"
                   : "text-zinc-300 hover:text-white"
               }`}
             >
               group chat
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (hasExistingLLMChat) {
+                  toast.error("You already have an AI chat. Only one AI chat is allowed.");
+                  return;
+                }
+                setConversationType("llm");
+                setSelectedMembers([]);
+              }}
+              disabled={hasExistingLLMChat}
+              className={`py-2 px-4 text-sm font-medium transition-colors relative ${
+                conversationType === "llm"
+                  ? "bg-blue-600 text-white"
+                  : hasExistingLLMChat
+                  ? "text-zinc-500 bg-zinc-600 cursor-not-allowed"
+                  : "text-zinc-300 hover:text-white"
+              }`}
+              title={hasExistingLLMChat ? "AI chat already exists" : "Create AI chat"}
+            >
+              ai chat
+              {hasExistingLLMChat && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full text-xs flex items-center justify-center text-black font-bold">
+                  1
+                </span>
+              )}
             </button>
           </div>
 
@@ -171,6 +210,8 @@ export default function CreateConversationModal({
             >
               {conversationType === "direct"
                 ? "direct message title (optional)"
+                : conversationType === "llm"
+                ? "ai chat title"
                 : "group chat title"}
             </label>
             <input
@@ -183,22 +224,25 @@ export default function CreateConversationModal({
               placeholder={
                 conversationType === "direct"
                   ? "optional title"
+                  : conversationType === "llm"
+                  ? "e.g., coding assistant, homework helper"
                   : "enter group name"
               }
               className="w-full px-3 py-2 bg-zinc-700 border border-zinc-600 text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500"
             />
           </div>
 
-          <div>
-            <label
-              htmlFor="usernameInput"
-              className="block text-sm font-medium text-zinc-300 mb-2"
-            >
-              add members by username{" "}
-              {conversationType === "group" && (
-                <span className="text-zinc-400">(max 10)</span>
-              )}
-            </label>
+          {conversationType !== "llm" && (
+            <div>
+              <label
+                htmlFor="usernameInput"
+                className="block text-sm font-medium text-zinc-300 mb-2"
+              >
+                add members by username{" "}
+                {conversationType === "group" && (
+                  <span className="text-zinc-400">(max 10)</span>
+                )}
+              </label>
             <div className="flex space-x-2 mb-3">
               <input
                 id="usernameInput"
@@ -260,7 +304,8 @@ export default function CreateConversationModal({
                 ))}
               </div>
             )}
-          </div>
+            </div>
+          )}
 
           <div className="flex space-x-3 pt-4">
             <button

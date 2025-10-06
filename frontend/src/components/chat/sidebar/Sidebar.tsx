@@ -14,19 +14,22 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import type { Conversation } from "@/types";
 import ConversationSection from "../conversation/ConversationSection";
-import CreateConversationModal from "../modals/CreateConversationModal";
+import CreateConversationModal from "../CreateConversationModal";
 import SidebarHeader from "./SidebarHeader";
+import QuickLLMChatButton from "../QuickLLMChatButton";
 
 interface SidebarProps {
   conversations: Conversation[];
   activeConversationId: string | null;
   onConversationSelect: (id: string) => void;
   onCreateConversation: (data: {
-    type: "direct" | "group";
+    type: "direct" | "group" | "llm";
     name: string;
     member_ids: string[];
   }) => void;
   onReorderConversations?: (conversations: Conversation[]) => void;
+  setConversations: (fn: (prev: Conversation[]) => Conversation[]) => void;
+  setActiveConversationId: (id: string) => void;
 }
 
 export default function Sidebar({
@@ -35,6 +38,8 @@ export default function Sidebar({
   onConversationSelect,
   onCreateConversation,
   onReorderConversations,
+  setConversations,
+  setActiveConversationId,
 }: SidebarProps) {
   const { user } = useAuth();
   const [showNewChat, setShowNewChat] = useState(false);
@@ -47,10 +52,11 @@ export default function Sidebar({
     }),
   );
 
-  const { directConversations, groupConversations } = useMemo(() => {
+  const { directConversations, groupConversations, llmConversations } = useMemo(() => {
     const direct = conversationOrder.filter((c) => c.type === "direct");
     const group = conversationOrder.filter((c) => c.type === "group");
-    return { directConversations: direct, groupConversations: group };
+    const llm = conversationOrder.filter((c) => c.type === "llm");
+    return { directConversations: direct, groupConversations: group, llmConversations: llm };
   }, [conversationOrder]);
 
   useEffect(() => {
@@ -80,6 +86,16 @@ export default function Sidebar({
     <div className="w-80 bg-zinc-800 border-r border-zinc-700 flex flex-col h-full">
       <SidebarHeader onNewChat={() => setShowNewChat(true)} />
 
+      {/* Quick LLM Chat Button */}
+      <div className="p-3 border-b border-zinc-700">
+        <QuickLLMChatButton 
+          onCreateConversation={onCreateConversation}
+          setConversations={setConversations}
+          setActiveConversationId={setActiveConversationId}
+          conversations={conversations}
+        />
+      </div>
+
       <div className="flex-1 overflow-y-auto">
         {conversationOrder.length === 0 ? (
           <div className="p-4 text-center text-zinc-400">
@@ -91,6 +107,15 @@ export default function Sidebar({
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
+            {llmConversations.length > 0 && (
+              <ConversationSection
+                title="ai chats"
+                conversations={llmConversations}
+                activeConversationId={activeConversationId}
+                onConversationSelect={onConversationSelect}
+                currentUserId={user.id}
+              />
+            )}
             <ConversationSection
               title="groups"
               conversations={groupConversations}
@@ -116,6 +141,7 @@ export default function Sidebar({
             await onCreateConversation(data);
             setShowNewChat(false);
           }}
+          conversations={conversations}
         />
       )}
     </div>

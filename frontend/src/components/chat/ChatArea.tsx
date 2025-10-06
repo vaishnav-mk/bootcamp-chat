@@ -12,12 +12,18 @@ import type { Conversation, Message } from "@/types";
 import MessageActionsDropdown from "./message/MessageActionsDropdown";
 import EditMessageModal from "./message/EditMessageModal";
 import DeleteConfirmationModal from "./message/DeleteConfirmationModal";
+import ThinkingMessage from "./ThinkingMessage";
+import FloatingLLMButton from "./FloatingLLMButton";
 
 interface ChatAreaProps {
-  conversation?: Conversation;
+  conversation: Conversation | null;
   messages: Message[];
-  onSendMessage: (content: string) => void;
+  onSendMessage: (message: string) => void;
   isConnected?: boolean;
+  isThinking?: boolean;
+  setConversations?: (fn: (prev: Conversation[]) => Conversation[]) => void;
+  setActiveConversationId?: (id: string) => void;
+  conversations?: Conversation[];
 }
 
 export default function ChatArea({
@@ -25,6 +31,10 @@ export default function ChatArea({
   messages,
   onSendMessage,
   isConnected = true,
+  isThinking = false,
+  setConversations,
+  setActiveConversationId,
+  conversations,
 }: ChatAreaProps) {
   const { user } = useAuth();
   const { editMessage, deleteMessage } = useWebSocket();
@@ -69,7 +79,6 @@ export default function ChatArea({
   const handleMessageRightClick = (e: React.MouseEvent, message: Message) => {
     e.preventDefault();
     
-    // Only allow actions on own messages
     if (message.senderId !== user?.id) return;
     
     setSelectedMessageActions({
@@ -100,7 +109,7 @@ export default function ChatArea({
 
   if (!conversation) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-zinc-900">
+      <div className="flex-1 flex items-center justify-center bg-zinc-900 relative">
         <div className="text-center">
           <div className="w-16 h-16 bg-zinc-700 rounded-full mx-auto mb-4 flex items-center justify-center">
             <svg
@@ -125,6 +134,13 @@ export default function ChatArea({
             choose a conversation from the sidebar to start chatting
           </p>
         </div>
+        {setConversations && setActiveConversationId && conversations && (
+          <FloatingLLMButton 
+            setConversations={setConversations}
+            setActiveConversationId={setActiveConversationId}
+            conversations={conversations}
+          />
+        )}
       </div>
     );
   }
@@ -224,6 +240,9 @@ export default function ChatArea({
               </div>
             );
           })
+        )}
+        {isThinking && conversation?.type === "llm" && (
+          <ThinkingMessage assistantName={conversation.name || "AI Assistant"} />
         )}
         <div ref={messagesEndRef} />
       </div>
