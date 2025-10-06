@@ -25,7 +25,10 @@ class GeminiService {
       const __filename = fileURLToPath(import.meta.url);
       const __dirname = path.dirname(__filename);
       const promptPath = path.join(__dirname, "../prompts/system.txt");
-      this.systemPrompt = fs.readFileSync(promptPath, "utf-8").trim();
+      let promptContent = fs.readFileSync(promptPath, "utf-8").trim();
+      promptContent = promptContent.replace("{{current_date}}", new Date().toISOString());
+      console.log("Loaded system prompt:", promptContent);
+      this.systemPrompt = promptContent;
     } catch (error) {
       console.error("Failed to load system prompt:", error);
       this.systemPrompt = "You are a helpful AI assistant. Only respond to the latest user message.";
