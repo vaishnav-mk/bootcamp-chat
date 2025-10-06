@@ -25,6 +25,7 @@ function ChatAppContent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isThinking, setIsThinking] = useState(false);
+  const [lastUserMessageTime, setLastUserMessageTime] = useState<number | null>(null);
 
   const loadConversations = useCallback(async () => {
     await loadConversationsUtil(setConversations, setActiveConversationId, joinConversations, activeConversationId);
@@ -43,7 +44,9 @@ function ChatAppContent() {
 
   useEffect(() => {
     setWsActiveConversationId(activeConversationId);
+    console.log("Active conversation changed, updating WebSocket context");
     setIsThinking(false);
+    setLastUserMessageTime(null); // Reset tracking when switching conversations
   }, [activeConversationId, setWsActiveConversationId]);
 
   useEffect(() => {
@@ -99,30 +102,49 @@ function ChatAppContent() {
   );
 
   useEffect(() => {
-    if (!isThinking || !activeConversationId) return;
-    
-    const activeConversation = conversations.find(c => c.id === activeConversationId);
-    if (activeConversation?.type !== "llm") return;
+    if (!isThinking || !lastUserMessageTime) return;
     
     const lastMessage = conversationMessages[conversationMessages.length - 1];
     
-    if (lastMessage && (lastMessage.metadata?.isLLMResponse || lastMessage.senderId !== user?.id)) {
-      const timer = setTimeout(() => {
+    if (lastMessage?.metadata?.isLLMResponse) {
+      const messageTime = new Date(lastMessage.createdAt).getTime();
+      if (messageTime > lastUserMessageTime) {
+        console.log("Setting isThinking to false - received new LLM response after user message");
         setIsThinking(false);
-      }, 500);
-      
-      return () => clearTimeout(timer);
+        setLastUserMessageTime(null);
+      }
     }
-  }, [conversationMessages, isThinking, activeConversationId, conversations, user?.id]);
+  }, [conversationMessages.length, isThinking, lastUserMessageTime]);
+
+  useEffect(() => {
+    if (!isThinking) return;
+    
+    const timeout = setTimeout(() => {
+      setIsThinking(false);
+      setLastUserMessageTime(null);
+      console.log("Setting isThinking to false due to timeout after 30 seconds");
+    }, 30000);
+    
+    return () => clearTimeout(timeout);
+  }, [isThinking]);
 
   const handleSendMessage = async (content: string) => {
     const activeConversation = conversations.find(c => c.id === activeConversationId);
     
     if (activeConversation?.type === "llm") {
+      console.log("Setting isThinking to true for LLM conversation");
       setIsThinking(true);
+      setLastUserMessageTime(Date.now());
     }
     
-    await sendMessageUtil(content, activeConversationId, user, isConnected, sendMessage);
+    try {
+      await sendMessageUtil(content, activeConversationId, user, isConnected, sendMessage);
+    } catch (error) {
+      setIsThinking(false);
+      setLastUserMessageTime(null);
+      console.log("Setting isThinking to false due to error in sending message");
+      throw error;
+    }
   };
 
   const handleCreateConversation = async (data: {
