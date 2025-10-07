@@ -85,6 +85,56 @@ class GeminiService {
       throw new Error("Failed to generate response from Gemini");
     }
   }
+
+  async *generateStreamingResponse(message: string, conversationHistory?: Array<{role: string, content: string}>): AsyncGenerator<string, void, unknown> {
+    if (!this.client) {
+      throw new Error("Gemini service not available. Please configure GEMINI_API_KEY.");
+    }
+
+    try {
+      const contents = [];
+      
+      contents.push({
+        role: "user",
+        parts: [{ text: this.systemPrompt }]
+      });
+      contents.push({
+        role: "model", 
+        parts: [{ text: "I understand. I'm ready to help as your AI assistant." }]
+      });
+
+      if (conversationHistory && conversationHistory.length > 0) {
+        const recentHistory = conversationHistory.slice(-8);
+        
+        for (const msg of recentHistory) {
+          contents.push({
+            role: msg.role === "assistant" ? "model" : "user",
+            parts: [{ text: msg.content }]
+          });
+        }
+      }
+
+      contents.push({
+        role: "user",
+        parts: [{ text: `Current message to respond to: ${message}` }]
+      });
+
+      const response = await this.client.models.generateContentStream({
+        model: config.geminiModel,
+        contents: contents,
+      });
+
+      for await (const chunk of response) {
+        const text = chunk.text;
+        if (text) {
+          yield text;
+        }
+      }
+    } catch (error) {
+      console.error("Error generating streaming Gemini response:", error);
+      throw new Error("Failed to generate streaming response from Gemini");
+    }
+  }
 }
 
 export const geminiService = new GeminiService();

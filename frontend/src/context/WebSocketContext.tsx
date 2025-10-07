@@ -41,6 +41,7 @@ interface WebSocketContextType {
   messages: Message[];
   clearMessages: () => void;
   setActiveConversationId: (id: string | null) => void;
+  streamingMessages: Map<string, string>;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | null>(null);
@@ -52,6 +53,8 @@ export const WebSocketProvider: React.FC<{ children: ReactNode; token: string | 
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const conversationCreatedCallbackRef = useRef<((conversation: any) => void) | null>(null);
   const { incrementUnread } = useNotifications();
+  const [streamingMessages, setStreamingMessages] = useState<Map<string, string>>(new Map());
+  const streamingMessageRef = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (!token) return;
@@ -120,6 +123,32 @@ export const WebSocketProvider: React.FC<{ children: ReactNode; token: string | 
       }
       if (data.conversation?.id) {
         newSocket.emit('join_conversations', [data.conversation.id]);
+      }
+    });
+
+    newSocket.on('message_stream_chunk', (data: { chunk: string; senderId: string; conversationId: string }) => {
+      const convId = data.conversationId;
+      if (convId) {
+        const previousContent = streamingMessageRef.current.get(convId) || '';
+        const newContent = previousContent + data.chunk;
+        streamingMessageRef.current.set(convId, newContent);
+        setStreamingMessages(new Map(streamingMessageRef.current));
+      }
+    });
+
+    newSocket.on('message_stream_end', (data: any) => {
+      const message = data.message || data;
+      streamingMessageRef.current.delete(message.conversationId);
+      setStreamingMessages(new Map(streamingMessageRef.current));
+      
+      setMessages(prev => {
+        const existingMessage = prev.find(m => m.id === message.id);
+        if (existingMessage) return prev;
+        return [...prev, message];
+      });
+
+      if (message.conversationId !== activeConversationId) {
+        incrementUnread(message.conversationId, message.senderId);
       }
     });
 
@@ -201,6 +230,17 @@ export const WebSocketProvider: React.FC<{ children: ReactNode; token: string | 
 
   const clearMessages = useCallback(() => setMessages([]), []);
 
+  const clearStreamingForConversation = useCallback((conversationId: string) => {
+    streamingMessageRef.current.delete(conversationId);
+    setStreamingMessages(new Map(streamingMessageRef.current));
+  }, []);
+
+  useEffect(() => {
+    if (activeConversationId) {
+      clearStreamingForConversation(activeConversationId);
+    }
+  }, [activeConversationId, clearStreamingForConversation]);
+
   const onConversationCreated = useCallback((callback: (conversation: any) => void) => {
     console.log("Setting conversation created callback");
     conversationCreatedCallbackRef.current = callback;
@@ -219,7 +259,8 @@ export const WebSocketProvider: React.FC<{ children: ReactNode; token: string | 
     onConversationCreated,
     messages,
     clearMessages,
-    setActiveConversationId
+    setActiveConversationId,
+    streamingMessages
   };
 
   return <WebSocketContext.Provider value={value}>{children}</WebSocketContext.Provider>;

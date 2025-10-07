@@ -23,6 +23,7 @@ interface ChatAreaProps {
   setConversations?: (fn: (prev: Conversation[]) => Conversation[]) => void;
   setActiveConversationId?: (id: string) => void;
   conversations?: Conversation[];
+  streamingContent?: string | null;
 }
 
 export default function ChatArea({
@@ -34,6 +35,7 @@ export default function ChatArea({
   setConversations,
   setActiveConversationId,
   conversations,
+  streamingContent = null,
 }: ChatAreaProps) {
   const { user } = useAuth();
   const { editMessage, deleteMessage } = useWebSocket();
@@ -45,16 +47,55 @@ export default function ChatArea({
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [deletingMessage, setDeletingMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 50;
+      
+      setIsUserScrolling(!isAtBottom);
+      
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      
+      scrollTimeoutRef.current = setTimeout(() => {
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 50;
+        setIsUserScrolling(!isAtBottom);
+      }, 150);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isUserScrolling) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, streamingContent, isUserScrolling]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (messageInput.trim()) {
       onSendMessage(messageInput.trim());
       setMessageInput("");
+      setIsUserScrolling(false);
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
     }
   };
 
@@ -64,6 +105,10 @@ export default function ChatArea({
       if (messageInput.trim()) {
         onSendMessage(messageInput.trim());
         setMessageInput("");
+        setIsUserScrolling(false);
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
       }
     }
   };
@@ -168,7 +213,7 @@ export default function ChatArea({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-zinc-400">
@@ -239,6 +284,48 @@ export default function ChatArea({
               </div>
             );
           })
+        )}
+        {streamingContent && (
+          <div className="flex justify-start">
+            <div className="max-w-xs lg:max-w-md order-1">
+              <div className="text-sm text-zinc-400 mb-1">
+                AI Assistant
+              </div>
+              <div className="px-4 py-2 rounded-lg bg-zinc-700 text-white">
+                <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                      code: ({ children }) => (
+                        <code className="bg-black/30 px-1 py-0.5 rounded text-sm font-mono">
+                          {children}
+                        </code>
+                      ),
+                      pre: ({ children }) => (
+                        <pre className="bg-black/30 p-2 rounded text-sm font-mono overflow-x-auto my-2">
+                          {children}
+                        </pre>
+                      ),
+                      ul: ({ children }) => <ul className="my-1 ml-4">{children}</ul>,
+                      ol: ({ children }) => <ol className="my-1 ml-4">{children}</ol>,
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-2 border-zinc-500 pl-3 my-2 italic">
+                          {children}
+                        </blockquote>
+                      ),
+                    }}
+                  >
+                    {streamingContent}
+                  </ReactMarkdown>
+                </div>
+                <div className="text-xs mt-1 text-zinc-400 flex items-center gap-1">
+                  <div className="w-1 h-1 bg-purple-400 rounded-full animate-pulse"></div>
+                  <span>streaming...</span>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
         <div ref={messagesEndRef} />
       </div>

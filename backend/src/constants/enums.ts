@@ -35,4 +35,6 @@ export enum WebSocketEvent {
   MESSAGE_EDITED = 'message_edited',
   MESSAGE_DELETED = 'message_deleted',
   CONVERSATION_CREATED = 'conversation_created',
+  MESSAGE_STREAM_CHUNK = 'message_stream_chunk',
+  MESSAGE_STREAM_END = 'message_stream_end',
 }

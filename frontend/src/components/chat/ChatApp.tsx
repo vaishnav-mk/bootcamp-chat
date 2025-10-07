@@ -16,7 +16,7 @@ import MembersSidebar from "./sidebar/MembersSidebar";
 
 function ChatAppContent() {
   const { user } = useAuth();
-  const { sendMessage, isConnected, messages: wsMessages, joinConversations, clearMessages, setActiveConversationId: setWsActiveConversationId, onConversationCreated } = useWebSocket();
+  const { sendMessage, isConnected, messages: wsMessages, joinConversations, clearMessages, setActiveConversationId: setWsActiveConversationId, onConversationCreated, streamingMessages } = useWebSocket();
   const { markAsRead } = useNotifications();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<
@@ -44,9 +44,8 @@ function ChatAppContent() {
 
   useEffect(() => {
     setWsActiveConversationId(activeConversationId);
-    console.log("Active conversation changed, updating WebSocket context");
     setIsThinking(false);
-    setLastUserMessageTime(null); // Reset tracking when switching conversations
+    setLastUserMessageTime(null);
   }, [activeConversationId, setWsActiveConversationId]);
 
   useEffect(() => {
@@ -100,6 +99,33 @@ function ChatAppContent() {
   const conversationMessages = messages.filter(
     (m) => m.conversationId === activeConversationId,
   );
+
+  const streamingContent = activeConversationId ? streamingMessages.get(activeConversationId) : null;
+
+  useEffect(() => {
+    console.log('�️ StreamingMessages Map state:', {
+      mapSize: streamingMessages.size,
+      mapEntries: Array.from(streamingMessages.entries()),
+      activeConversationId,
+      streamingContent
+    });
+  }, [streamingMessages, activeConversationId, streamingContent]);
+
+  useEffect(() => {
+    console.log('�🔄 Streaming content changed:', { 
+      activeConversationId, 
+      hasContent: !!streamingContent, 
+      contentLength: streamingContent?.length,
+      content: streamingContent 
+    });
+  }, [streamingContent, activeConversationId]);
+
+  useEffect(() => {
+    if (streamingContent) {
+      console.log('💭 Streaming started, disabling thinking indicator');
+      setIsThinking(false);
+    }
+  }, [streamingContent]);
 
   useEffect(() => {
     if (!isThinking || !lastUserMessageTime) return;
@@ -217,6 +243,7 @@ function ChatAppContent() {
         setConversations={setConversations}
         setActiveConversationId={setActiveConversationId}
         conversations={conversations}
+        streamingContent={streamingContent}
       />
       {user && (
         <MembersSidebar

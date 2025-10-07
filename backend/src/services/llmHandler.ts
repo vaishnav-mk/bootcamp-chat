@@ -38,13 +38,24 @@ export async function handleLLMResponse(
         };
       });
 
-    const llmResponse = await geminiService.generateResponse(userMessage, conversationHistory);
+    let fullResponse = '';
+    const wsService = getWebSocketService();
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    for await (const chunk of geminiService.generateStreamingResponse(userMessage, conversationHistory)) {
+      fullResponse += chunk;
+      
+      if (wsService) {
+        wsService.sendToConversation(conversationId, WebSocketEvent.MESSAGE_STREAM_CHUNK, {
+          chunk,
+          senderId: assistantId,
+          conversationId
+        });
+      }
+    }
 
     const responseMessage = await createMessage(assistantId, {
       conversation_id: conversationId,
-      content: llmResponse,
+      content: fullResponse,
       message_type: 'text',
       metadata: {
         isLLMResponse: true,
@@ -52,9 +63,8 @@ export async function handleLLMResponse(
       }
     });
 
-    const wsService = getWebSocketService();
     if (wsService && responseMessage) {
-      wsService.sendToConversation(conversationId, WebSocketEvent.MESSAGE_CREATED, {
+      wsService.sendToConversation(conversationId, WebSocketEvent.MESSAGE_STREAM_END, {
         message: serializeBigInt(responseMessage)
       });
     }
