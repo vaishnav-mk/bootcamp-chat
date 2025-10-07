@@ -72,8 +72,10 @@ class GeminiService {
         parts: [{ text: `Current message to respond to: ${message}` }]
       });
 
+      console.log("AAAAAAAAA-- Sending contents to Gemini:", contents);
+
       const response = await this.client.models.generateContent({
-        model: "gemini-2.0-flash-lite",
+        model: config.geminiModel,
         contents: contents,
       });
 

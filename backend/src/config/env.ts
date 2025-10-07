@@ -15,6 +15,7 @@ export const config = {
     ? process.env.WEBSOCKET_ORIGINS.split(',')
     : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
   geminiApiKey: process.env.GEMINI_API_KEY,
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite',
 } as const;
 
 const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET'] as const;
