@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import MarkdownRenderer from "./MarkdownRenderer";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
 import { useAuth } from "@/context/AuthContext";
@@ -200,31 +199,7 @@ export default function ChatArea({
                     onContextMenu={(e) => handleMessageRightClick(e, message)}
                   >
                     <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                          code: ({ children }) => (
-                            <code className="bg-black/30 px-1 py-0.5 rounded text-sm font-mono">
-                              {children}
-                            </code>
-                          ),
-                          pre: ({ children }) => (
-                            <pre className="bg-black/30 p-2 rounded text-sm font-mono overflow-x-auto my-2">
-                              {children}
-                            </pre>
-                          ),
-                          ul: ({ children }) => <ul className="my-1 ml-4">{children}</ul>,
-                          ol: ({ children }) => <ol className="my-1 ml-4">{children}</ol>,
-                          blockquote: ({ children }) => (
-                            <blockquote className="border-l-2 border-zinc-500 pl-3 my-2 italic">
-                              {children}
-                            </blockquote>
-                          ),
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
+                      <MarkdownRenderer content={message.content} />
                     </div>
                     <div
                       className={`text-xs mt-1 flex items-center gap-1 ${isOwnMessage ? "text-blue-100" : "text-zinc-400"}`}
@@ -280,31 +255,7 @@ export default function ChatArea({
                     <div className="min-h-24 max-h-32 overflow-y-auto p-3 bg-zinc-700 rounded border border-zinc-600">
                       {messageInput.trim() ? (
                         <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                              code: ({ children }) => (
-                                <code className="bg-black/30 px-1 py-0.5 rounded text-sm font-mono">
-                                  {children}
-                                </code>
-                              ),
-                              pre: ({ children }) => (
-                                <pre className="bg-black/30 p-2 rounded text-sm font-mono overflow-x-auto my-2">
-                                  {children}
-                                </pre>
-                              ),
-                              ul: ({ children }) => <ul className="my-1 ml-4">{children}</ul>,
-                              ol: ({ children }) => <ol className="my-1 ml-4">{children}</ol>,
-                              blockquote: ({ children }) => (
-                                <blockquote className="border-l-2 border-zinc-500 pl-3 my-2 italic">
-                                  {children}
-                                </blockquote>
-                              ),
-                            }}
-                          >
-                            {messageInput}
-                          </ReactMarkdown>
+                          <MarkdownRenderer content={messageInput} />
                         </div>
                       ) : (
                         <div className="text-zinc-500 text-sm italic">
@@ -318,31 +269,7 @@ export default function ChatArea({
                 {messageInput.trim() && (
                   <div className="md:hidden mt-3 p-3 bg-zinc-700 rounded border border-zinc-600">
                     <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                          code: ({ children }) => (
-                            <code className="bg-black/30 px-1 py-0.5 rounded text-sm font-mono">
-                              {children}
-                            </code>
-                          ),
-                          pre: ({ children }) => (
-                            <pre className="bg-black/30 p-2 rounded text-sm font-mono overflow-x-auto my-2">
-                              {children}
-                            </pre>
-                          ),
-                          ul: ({ children }) => <ul className="my-1 ml-4">{children}</ul>,
-                          ol: ({ children }) => <ol className="my-1 ml-4">{children}</ol>,
-                          blockquote: ({ children }) => (
-                            <blockquote className="border-l-2 border-zinc-500 pl-3 my-2 italic">
-                              {children}
-                            </blockquote>
-                          ),
-                        }}
-                      >
-                        {messageInput}
-                      </ReactMarkdown>
+                      <MarkdownRenderer content={messageInput} />
                     </div>
                   </div>
                 )}
