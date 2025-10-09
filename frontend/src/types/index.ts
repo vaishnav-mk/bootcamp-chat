@@ -10,7 +10,7 @@ export interface User {
 
 export interface Conversation {
   id: string;
-  type: "direct" | "group";
+  type: "direct" | "group" | "llm";
   name?: string;
   createdAt: string;
   updatedAt: string;
@@ -27,6 +27,11 @@ export interface Message {
   createdAt: string;
   updatedAt: string;
   sender?: User;
+  metadata?: {
+    timestamp?: string;
+    isLLMResponse?: boolean;
+    [key: string]: any;
+  };
 }
 
 export interface AuthState {

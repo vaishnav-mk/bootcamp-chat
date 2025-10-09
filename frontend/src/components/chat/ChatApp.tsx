@@ -24,6 +24,8 @@ function ChatAppContent() {
   >(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isThinking, setIsThinking] = useState(false);
+  const [lastUserMessageTime, setLastUserMessageTime] = useState<number | null>(null);
 
   const loadConversations = useCallback(async () => {
     await loadConversationsUtil(setConversations, setActiveConversationId, joinConversations, activeConversationId);
@@ -42,6 +44,9 @@ function ChatAppContent() {
 
   useEffect(() => {
     setWsActiveConversationId(activeConversationId);
+    console.log("Active conversation changed, updating WebSocket context");
+    setIsThinking(false);
+    setLastUserMessageTime(null); // Reset tracking when switching conversations
   }, [activeConversationId, setWsActiveConversationId]);
 
   useEffect(() => {
@@ -57,7 +62,6 @@ function ChatAppContent() {
     });
   }, [onConversationCreated]);
 
-  // Mark messages as read when window becomes visible and user is viewing a conversation
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && activeConversationId) {
@@ -97,12 +101,54 @@ function ChatAppContent() {
     (m) => m.conversationId === activeConversationId,
   );
 
+  useEffect(() => {
+    if (!isThinking || !lastUserMessageTime) return;
+    
+    const lastMessage = conversationMessages[conversationMessages.length - 1];
+    
+    if (lastMessage?.metadata?.isLLMResponse) {
+      const messageTime = new Date(lastMessage.createdAt).getTime();
+      if (messageTime > lastUserMessageTime) {
+        console.log("Setting isThinking to false - received new LLM response after user message");
+        setIsThinking(false);
+        setLastUserMessageTime(null);
+      }
+    }
+  }, [conversationMessages.length, isThinking, lastUserMessageTime]);
+
+  useEffect(() => {
+    if (!isThinking) return;
+    
+    const timeout = setTimeout(() => {
+      setIsThinking(false);
+      setLastUserMessageTime(null);
+      console.log("Setting isThinking to false due to timeout after 30 seconds");
+    }, 30000);
+    
+    return () => clearTimeout(timeout);
+  }, [isThinking]);
+
   const handleSendMessage = async (content: string) => {
-    await sendMessageUtil(content, activeConversationId, user, isConnected, sendMessage);
+    const activeConversation = conversations.find(c => c.id === activeConversationId);
+    
+    if (activeConversation?.type === "llm") {
+      console.log("Setting isThinking to true for LLM conversation");
+      setIsThinking(true);
+      setLastUserMessageTime(Date.now());
+    }
+    
+    try {
+      await sendMessageUtil(content, activeConversationId, user, isConnected, sendMessage);
+    } catch (error) {
+      setIsThinking(false);
+      setLastUserMessageTime(null);
+      console.log("Setting isThinking to false due to error in sending message");
+      throw error;
+    }
   };
 
   const handleCreateConversation = async (data: {
-    type: "direct" | "group";
+    type: "direct" | "group" | "llm";
     name: string;
     member_ids: string[];
   }) => {
@@ -132,7 +178,7 @@ function ChatAppContent() {
 
       const { conversation } = await conversationApi.createConversation({
         type: "direct",
-        name: "", // Let the backend handle the naming
+        name: "",
         member_ids: [userId],
       });
       
@@ -159,11 +205,18 @@ function ChatAppContent() {
         onConversationSelect={setActiveConversationId}
         onCreateConversation={handleCreateConversation}
         onReorderConversations={handleReorderConversations}
+        setConversations={setConversations}
+        setActiveConversationId={setActiveConversationId}
       />
       <ChatArea
-        conversation={activeConversation}
+        conversation={activeConversation || null}
         messages={conversationMessages}
         onSendMessage={handleSendMessage}
+        isConnected={isConnected}
+        isThinking={isThinking}
+        setConversations={setConversations}
+        setActiveConversationId={setActiveConversationId}
+        conversations={conversations}
       />
       {user && (
         <MembersSidebar

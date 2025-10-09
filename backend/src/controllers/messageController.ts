@@ -9,6 +9,8 @@ import {
 } from "@/services/messageService";
 import { ErrorMessage } from "@/constants/errors";
 import { serializeBigInt } from "@/utils/serialization";
+import { handleLLMResponse } from "@/services/llmHandler";
+import * as conversationService from "@/services/conversationService";
 
 export const getConversationMessages = asyncWrap(async (req: Request, res: Response) => {
   const { conversationId } = req.params;
@@ -39,6 +41,21 @@ export const createMessage = asyncWrap(async (req: Request, res: Response) => {
   }
 
   const message = await createMsg(userId, messageData);
+  
+  try {
+    const conversation = await conversationService.fetchConversationById(messageData.conversation_id);
+    if (conversation) {
+      handleLLMResponse(messageData.conversation_id, {
+        id: conversation.id.toString(),
+        type: conversation.type
+      }, messageData.content).catch(error => {
+        console.error("LLM response handling failed:", error);
+      });
+    }
+  } catch (error) {
+    console.error("Error checking conversation type for LLM response:", error);
+  }
+
   res.status(201).json({ message: serializeBigInt(message) });
 });
 

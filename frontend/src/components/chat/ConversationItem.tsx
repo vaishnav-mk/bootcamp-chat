@@ -32,6 +32,10 @@ export default function ConversationItem({
       return otherMember?.name || "Unknown User";
     }
 
+    if (conversation.type === "llm") {
+      return "AI Assistant";
+    }
+
     return "Unnamed Chat";
   };
 
@@ -52,7 +56,11 @@ export default function ConversationItem({
           <div className="flex items-center gap-2 mb-1">
             <div
               className={`w-2 h-2 rounded-full ${
-                conversation.type === "group" ? "bg-green-500" : "bg-blue-500"
+                conversation.type === "group" 
+                  ? "bg-green-500" 
+                  : conversation.type === "llm"
+                  ? "bg-purple-500"
+                  : "bg-blue-500"
               }`}
             />
             <h3 className="font-medium text-white truncate">
@@ -62,10 +70,14 @@ export default function ConversationItem({
           <div className="flex items-center gap-1 mb-1">
             <span
               className={`text-xs px-2 py-0.5 rounded-full text-white ${
-                conversation.type === "group" ? "bg-green-600" : "bg-blue-600"
+                conversation.type === "group" 
+                  ? "bg-green-600" 
+                  : conversation.type === "llm"
+                  ? "bg-purple-600"
+                  : "bg-blue-600"
               }`}
             >
-              {conversation.type}
+              {conversation.type === "llm" ? "ai" : conversation.type}
             </span>
             {conversation.type === "group" && (
               <span className="text-xs text-zinc-300 bg-zinc-600 px-2 py-0.5 rounded-full">

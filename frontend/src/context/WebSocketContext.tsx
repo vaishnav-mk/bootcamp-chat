@@ -20,6 +20,7 @@ interface Message {
 
 interface CreateMessageData {
   conversation_id: string;
+  sender_id?: string;
   content: string;
   message_type?: string;
   metadata?: any;
@@ -56,7 +57,7 @@ export const WebSocketProvider: React.FC<{ children: ReactNode; token: string | 
     if (!token) return;
     const wsUrl =
   typeof window !== "undefined"
-    ? process.env.NEXT_PUBLIC_WS_URL || "http://43.205.121.157:3001"
+    ? process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3001"
     : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
     const newSocket = io(wsUrl, { 
@@ -80,9 +81,18 @@ export const WebSocketProvider: React.FC<{ children: ReactNode; token: string | 
       setIsConnected(false);
     });
 
-    newSocket.on('message_created', (message: Message) => {
+    newSocket.on('message_created', (data: any) => {
+      const message = data.message || data;
+      
+      if (!message || !message.id || !message.content || !message.conversationId) {
+        console.error('❌ Invalid message received:', message);
+        return;
+      }
+      
       setMessages(prev => {
-        if (prev.find(m => m.id === message.id)) return prev;
+        const existingMessage = prev.find(m => m.id === message.id);
+        if (existingMessage) return prev;
+        
         return [...prev, message];
       });
 

@@ -1,5 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { generateTestUser, clearAuth, waitForNavigation } from './helpers';
+import { test, expect, type Page } from '@playwright/test';
+import { generateTestUser, clearAuth, waitForNavigation } from './helpers';
 
 class AuthPage {
   constructor(private page: Page) {}

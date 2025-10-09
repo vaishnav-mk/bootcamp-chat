@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { resolve } from 'path';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -8,8 +9,15 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3001',
+    baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
+  },
+
+  webServer: {
+    command: 'npm run dev',
+    cwd: resolve(__dirname),
+    port: 3000,
+    reuseExistingServer: !process.env.CI,
   },
 
   projects: [

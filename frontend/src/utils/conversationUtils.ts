@@ -26,7 +26,7 @@ export const loadConversationsUtil = async (
 };
 
 export const createConversationUtil = async (
-  data: { type: "direct" | "group"; name: string; member_ids: string[] },
+  data: { type: "direct" | "group" | "llm"; name: string; member_ids: string[] },
   setConversations: (fn: (prev: Conversation[]) => Conversation[]) => void,
   setActiveConversationId: (id: string) => void
 ) => {
@@ -54,6 +54,7 @@ export const sendMessageUtil = async (
   try {
     await sendMessage({
       conversation_id: activeConversationId,
+      sender_id: user.id, 
       content: content.trim(),
       message_type: "text"
     });

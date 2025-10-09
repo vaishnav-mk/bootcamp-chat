@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import MarkdownRenderer from "../MarkdownRenderer";
 
 interface EditMessageModalProps {
   message: {
@@ -99,31 +98,7 @@ export default function EditMessageModal({
               <div className="min-h-32 max-h-64 overflow-y-auto p-3 bg-zinc-700 rounded border border-zinc-600">
                 {content.trim() ? (
                   <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                        code: ({ children }) => (
-                          <code className="bg-black/30 px-1 py-0.5 rounded text-sm font-mono">
-                            {children}
-                          </code>
-                        ),
-                        pre: ({ children }) => (
-                          <pre className="bg-black/30 p-2 rounded text-sm font-mono overflow-x-auto my-2">
-                            {children}
-                          </pre>
-                        ),
-                        ul: ({ children }) => <ul className="my-1 ml-4">{children}</ul>,
-                        ol: ({ children }) => <ol className="my-1 ml-4">{children}</ol>,
-                        blockquote: ({ children }) => (
-                          <blockquote className="border-l-2 border-zinc-500 pl-3 my-2 italic">
-                            {children}
-                          </blockquote>
-                        ),
-                      }}
-                    >
-                      {content}
-                    </ReactMarkdown>
+                    <MarkdownRenderer content={content} />
                   </div>
                 ) : (
                   <div className="text-zinc-500 text-sm italic">
@@ -137,31 +112,7 @@ export default function EditMessageModal({
           {content.trim() && (
             <div className="md:hidden mt-4 p-3 bg-zinc-700 rounded border border-zinc-600">
               <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                    code: ({ children }) => (
-                      <code className="bg-black/30 px-1 py-0.5 rounded text-sm font-mono">
-                        {children}
-                      </code>
-                    ),
-                    pre: ({ children }) => (
-                      <pre className="bg-black/30 p-2 rounded text-sm font-mono overflow-x-auto my-2">
-                        {children}
-                      </pre>
-                    ),
-                    ul: ({ children }) => <ul className="my-1 ml-4">{children}</ul>,
-                    ol: ({ children }) => <ol className="my-1 ml-4">{children}</ol>,
-                    blockquote: ({ children }) => (
-                      <blockquote className="border-l-2 border-zinc-500 pl-3 my-2 italic">
-                        {children}
-                      </blockquote>
-                    ),
-                  }}
-                >
-                  {content}
-                </ReactMarkdown>
+                <MarkdownRenderer content={content} />
               </div>
             </div>
           )}

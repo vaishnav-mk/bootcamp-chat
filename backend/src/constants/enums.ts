@@ -1,6 +1,7 @@
 export enum ConversationType {
   DIRECT = "direct",
   GROUP = "group",
+  LLM = "llm",
 }
 
 export enum MessageType {

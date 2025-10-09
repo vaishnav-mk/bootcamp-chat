@@ -16,6 +16,36 @@ const createConversationHandler = async (req: Request, res: Response) => {
   const data = req.validatedData as CreateConversationData;
 
   try {
+    if (data.type === ConversationType.LLM) {
+      const conversationName = data.name || "AI Assistant";
+      const allMemberIds = [userId];
+
+      const conversation = await conversationService.createConversation(
+        userId,
+        ConversationType.LLM,
+        conversationName,
+        allMemberIds
+      );
+
+      const members = await conversationService.getConversationMembers(conversation.id.toString());
+      const serializedMembers = serializeUsers(members, true);
+      const serializedConversation = serializeConversation(conversation, serializedMembers);
+
+      try {
+        const wsService = getWebSocketService();
+        if (wsService) {
+          wsService.joinUserToConversation(userId, conversation.id.toString());
+        }
+      } catch (error) {
+        console.error("Failed to send WebSocket notification for LLM conversation:", error);
+      }
+
+      return res.status(201).json({
+        message: SuccessMessage.CONVERSATION_CREATED,
+        conversation: serializedConversation,
+      });
+    }
+
     const allMemberIds = [...new Set([userId, ...data.member_ids])];
 
     const validUsers = await conversationService.validateMemberIds(allMemberIds);
@@ -46,10 +76,8 @@ const createConversationHandler = async (req: Request, res: Response) => {
       }
     }
 
-    // For direct messages, create a name with both users
     let conversationName = data.name;
     if (conversationType === ConversationType.DIRECT && allMemberIds.length === 2) {
-      // Get the user names for proper direct message naming
       const memberUsers = await conversationService.getUsersByIds(allMemberIds);
       conversationName = memberUsers.map((u: { name: string }) => u.name).sort().join(", ");
     }
@@ -65,39 +93,26 @@ const createConversationHandler = async (req: Request, res: Response) => {
     const serializedMembers = serializeUsers(members, true);
     const serializedConversation = serializeConversation(conversation, serializedMembers);
 
-    // Notify all members about the new conversation via WebSocket
     try {
       const wsService = getWebSocketService();
-      console.log("WebSocket service available:", !!wsService);
       
       if (wsService) {
-        // Send notification to all members except the creator
         const memberIds = allMemberIds.filter(id => id !== userId);
-        console.log("Sending conversation_created to users:", memberIds);
-        console.log("New conversation data:", {
-          id: conversation.id,
-          name: serializedConversation.name,
-          type: serializedConversation.type
-        });
         
         if (memberIds.length > 0) {
           wsService.sendToUsers(memberIds, WebSocketEvent.CONVERSATION_CREATED, {
             conversation: serializedConversation
           });
 
-          // Auto-join all members to the conversation room
           allMemberIds.forEach(memberId => {
             wsService.joinUserToConversation(memberId, conversation.id.toString());
           });
-          
-          console.log("WebSocket notification sent successfully");
         }
       } else {
         console.error("WebSocket service not available");
       }
     } catch (error) {
       console.error("Failed to send WebSocket notification:", error);
-      // Don't fail the API request if WebSocket fails
     }
 
     res.status(201).json({
