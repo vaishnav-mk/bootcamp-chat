@@ -5,65 +5,80 @@ import { ErrorMessage } from "../constants/errors.js";
 import { SuccessMessage } from "../constants/messages.js";
 import { serializeUser } from "../utils/userSerializer";
 import { asyncWrap } from "../middleware/asyncWrap.js";
-import { HttpError } from "@/utils/httpError";
 
 const getCurrentUserHandler = async (req: Request, res: Response) => {
   const userId = req.user?.id;
-  if (!userId) throw new HttpError(401, ErrorMessage.UNAUTHORIZED);
-
-  const user = await userService.fetchUserById(userId);
-  if (!user) {
-    throw new HttpError(404, ErrorMessage.USER_NOT_FOUND);
+  if (!userId) return res.status(401).json({ error: ErrorMessage.UNAUTHORIZED });
+  
+  try {
+    const user = await userService.fetchUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: ErrorMessage.USER_NOT_FOUND });
+    }
+    
+    res.json({ user: serializeUser(user, true) });
+  } catch (error) {
+    res.status(500).json({ error: ErrorMessage.FAILED_TO_FETCH_USER });
   }
-
-  res.json({ user: serializeUser(user, true) });
 };
 
 const getUserByIdHandler = async (req: Request, res: Response) => {
   const params = req.validatedParams as UserParamsData;
-
-  const user = await userService.fetchUserById(params.id);
-  if (!user) {
-    throw new HttpError(404, ErrorMessage.USER_NOT_FOUND);
+  
+  try {
+    const user = await userService.fetchUserById(params.id);
+    if (!user) {
+      return res.status(404).json({ error: ErrorMessage.USER_NOT_FOUND });
+    }
+    
+    res.json({ user: serializeUser(user, true) });
+  } catch (error) {
+    res.status(500).json({ error: ErrorMessage.FAILED_TO_FETCH_USER });
   }
-
-  res.json({ user: serializeUser(user, true) });
 };
 
 const getUserByUsernameHandler = async (req: Request, res: Response) => {
   const params = req.validatedParams as UsernameParamsData;
-
-  const user = await userService.fetchUserByUsername(params.username);
-  if (!user) {
-    throw new HttpError(404, ErrorMessage.USER_NOT_FOUND);
+  
+  try {
+    const user = await userService.fetchUserByUsername(params.username);
+    if (!user) {
+      return res.status(404).json({ error: ErrorMessage.USER_NOT_FOUND });
+    }
+    
+    res.json({ user: serializeUser(user) });
+  } catch (error) {
+    res.status(500).json({ error: ErrorMessage.FAILED_TO_FETCH_USER });
   }
-
-  res.json({ user: serializeUser(user) });
 };
 
 const updateProfileHandler = async (req: Request, res: Response) => {
   const userId = req.user?.id;
-  if (!userId) throw new HttpError(401, ErrorMessage.UNAUTHORIZED);
+  if (!userId) return res.status(401).json({ error: ErrorMessage.UNAUTHORIZED });
 
   const data = req.validatedData as UpdateProfileData;
 
-  if (data.username) {
-    const existingUser = await userService.fetchUserByUsername(data.username);
-    if (existingUser && existingUser.id.toString() !== userId) {
-      throw new HttpError(409, ErrorMessage.USERNAME_EXISTS);
+  try {
+    if (data.username) {
+      const existingUser = await userService.fetchUserByUsername(data.username);
+      if (existingUser && existingUser.id.toString() !== userId) {
+        return res.status(409).json({ error: ErrorMessage.USERNAME_EXISTS });
+      }
     }
+
+    const updates: any = {};
+    if (data.username) updates.username = data.username;
+    if (data.name) updates.name = data.name;
+
+    const updatedUser = await userService.updateUserProfile(userId, updates);
+    
+    res.json({
+      message: SuccessMessage.PROFILE_UPDATED,
+      user: serializeUser(updatedUser),
+    });
+  } catch (error) {
+    res.status(500).json({ error: ErrorMessage.FAILED_TO_UPDATE_PROFILE });
   }
-
-  const updates: any = {};
-  if (data.username) updates.username = data.username;
-  if (data.name) updates.name = data.name;
-
-  const updatedUser = await userService.updateUserProfile(userId, updates);
-
-  res.json({
-    message: SuccessMessage.PROFILE_UPDATED,
-    user: serializeUser(updatedUser),
-  });
 };
 
 export const getCurrentUser = asyncWrap(getCurrentUserHandler);
