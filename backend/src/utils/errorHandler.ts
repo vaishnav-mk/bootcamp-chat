@@ -1,19 +1,23 @@
 import { Request, Response, NextFunction } from "express";
 import { logger } from "@/middleware/logger";
+import { HttpError } from "./httpError";
 
-export function errorHandler(err: Error, req: Request, res: Response, next: NextFunction) {
-  logger.error("Error occurred:", {
-    message: err.message,
-    stack: err.stack,
+export function errorHandler(err: any, req: Request, res: Response, next: NextFunction) {
+  const status = err instanceof HttpError ? err.statusCode : 500;
+  const message = err && err.message ? err.message : "Internal Server Error";
+
+  logger.error(message, {
+    status,
     method: req.method,
-    url: req.url,
+    url: req.originalUrl,
     body: req.body,
     params: req.params,
     query: req.query,
-    timestamp: new Date().toISOString()
+    stack: err?.stack,
+    timestamp: new Date().toISOString(),
   });
 
-  logger.error("Full error object:", err);
+  const payload: any = { error: message };
 
-  res.status(500).json({ message: err.message });
+  res.status(status).json(payload);
 }
