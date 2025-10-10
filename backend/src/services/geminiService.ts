@@ -1,12 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
 import { config } from "@/config/env";
-import * as fs from "fs";
+import { promises as fs } from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
 
 class GeminiService {
   private client: GoogleGenAI | null = null;
-  private systemPrompt: string = "";
+  private systemPrompt: string = "You are a helpful AI assistant. Only respond to the latest user message.";
 
   constructor() {
     if (config.geminiApiKey) {
@@ -20,18 +20,17 @@ class GeminiService {
     this.loadSystemPrompt();
   }
 
-  private loadSystemPrompt(): void {
+  private async loadSystemPrompt(): Promise<void> {
     try {
       const __filename = fileURLToPath(import.meta.url);
       const __dirname = path.dirname(__filename);
       const promptPath = path.join(__dirname, "../prompts/system.txt");
-      let promptContent = fs.readFileSync(promptPath, "utf-8").trim();
-      promptContent = promptContent.replace("{{current_date}}", new Date().toISOString());
+      const raw = await fs.readFile(promptPath, "utf-8");
+      const promptContent = raw.trim().replace("{{current_date}}", new Date().toISOString());
       console.log("Loaded system prompt:", promptContent);
       this.systemPrompt = promptContent;
     } catch (error) {
       console.error("Failed to load system prompt:", error);
-      this.systemPrompt = "You are a helpful AI assistant. Only respond to the latest user message.";
     }
   }
 
